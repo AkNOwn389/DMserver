@@ -1,0 +1,22 @@
+from rest_framework import serializers
+from profiles.models import Profile
+from posts.serializers import ImagesSerializer
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+  user = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+        )
+  class Meta:
+    model = Profile
+    fields = ['user', 'profileimg', 'bgimg', 'bio', 'location', 'name', 'interested', 'gender', 'school', 'works']
+  def to_representation(self, instance):
+    rep = super().to_representation(instance)
+    rep["hobby"] = ImagesSerializer(instance.hobby.all(), many=True).data
+    return rep
+  
+class EditProfileSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Profile
+    fields = ['user_id', 'profileimg', 'bgimg', 'bio', 'location', 'name']
