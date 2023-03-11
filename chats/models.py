@@ -44,9 +44,3 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return str(self.msg_sender)+' to '+str(self.msg_receiver)
-
-class OnlineUser(models.Model):
-	user = models.OneToOneField(User, on_delete=models.CASCADE)
-
-	def __str__(self):
-		return self.user.username
