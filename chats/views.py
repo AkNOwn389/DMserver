@@ -5,6 +5,22 @@ from django.contrib.auth.models import User
 from.models import ChatRoom, ChatMessage
 from .serializers import ChatMessageSender, ChatMessageSerializer
 # Create your views here.
+class MessagePageView(APIView):
+    def get(self, request, page):
+        limit = page*8
+        a = []
+        b = ChatRoom.objects.filter(users = request.user)
+        for x in b:
+            y = ChatMessage.objects.filter(messageid=x.chat_id).last()
+            a.append(y)
+        a.reverse()
+        c = ChatMessageSerializer(a[int(limit)-8:int(limit)], many=True)
+        has_more_page = False
+        if len(c.data) == 8:
+            has_more_page = True
+        return JsonResponse({'status': True, 'status_code': 200, 'message': 'beta test', 'hasMorePage': has_more_page, 'data': c.data})
+    def post(self, request, page):
+        pass
 
 class sendmessage(APIView):
     def post(self, request):

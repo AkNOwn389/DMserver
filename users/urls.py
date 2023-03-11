@@ -3,7 +3,9 @@ from . import views
 urlpatterns = [
     path('following/page=<int:page>', views.get_following_list.as_view(), name="following"),
     path('followers/page=<int:page>', views.get_follower.as_view(), name='followers'),
+    path('usersuggested/page=<int:page>', views.user_suggested.as_view(), name='usersuggested'),
     path('signup', views.signup.as_view(), name='signup'),
     path('login', views.login.as_view(), name='login'),
     path('logout', views.logout.as_view(), name='logout'),
+    path('islogged', views.WhoAmI.as_view(), name="islogged"),
 ]

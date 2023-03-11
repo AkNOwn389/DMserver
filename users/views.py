@@ -1,12 +1,28 @@
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
+from users.models import FollowerCount
 from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from knox.auth import AuthToken
+import random
 
 # Create your views here.
+def isFollowed(me, username):
+    try:
+        a = User.objects.get(username = username)
+        b = FollowerCount.objects.get(user = a, follower = me)
+        return True
+    except:
+        return False
+def isFollower(me, username):
+    try:
+        a = User.objects.get(username = username)
+        b = FollowerCount.objects.get(user = me, follower = a)
+        return True
+    except:
+        return False
 
 class WhoAmI(APIView):
     def get(self, request):
@@ -23,7 +39,43 @@ class WhoAmI(APIView):
                                 "message":"ok",
                                 "id": None,
                                 "username": None})
-        
+
+class user_suggested(APIView):
+    def get(self, request, page):
+        if request.user.is_authenticated:
+            page=page*16
+            user_following = FollowerCount.objects.filter(follower=request.user)
+            # user suggestion starts
+            
+            all_users = User.objects.all()
+            user_following_all = []
+
+            for user in user_following:
+                user_list = User.objects.get(username=user.user)
+                user_following_all.append(user_list)
+            a = []
+            new_suggestions_list = [x for x in list(all_users) if (x not in list(user_following_all))]
+            current_user = User.objects.filter(username=request.user.username)
+            admins = User.objects.filter(is_superuser = 1)
+            a.extend(admins)
+            a.extend(current_user)
+            final_suggestions_list = [x for x in list(new_suggestions_list) if ( x not in list(a))]
+            random.shuffle(final_suggestions_list)
+
+            user_profile = []
+            for users in final_suggestions_list[page-16:page]:
+                profile_lists = Profile.objects.filter(user_id=users.id).first()
+                serializer = ProfileSerializer(profile_lists)
+                data = serializer.data
+                user_profile.append(data)
+            for i in user_profile:
+                del i['bgimg']
+                del i['bio']
+                i['Followed'] = isFollowed(request.user, i['user'])
+                i['Follower'] = isFollower(request.user, i['user'])
+            return JsonResponse({'status': True, 'status_code': 200, 'data': user_profile})
+        return JsonResponse({'status': 401,'message': 'user not logged'})
+
 class get_follower(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:
