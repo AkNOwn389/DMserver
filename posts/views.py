@@ -54,7 +54,7 @@ class uploadTextPost(APIView):
         if me.is_authenticated:
             try:
                 user = Profile.objects.get(user=request.user)
-                data = {"creator": request.user.id, 'creator_full_name': user.name, "description": request.data['caption'], 'media_type': request.data['media_type']}
+                data = {"creator": request.user.id, 'creator_full_name': user.name, "description": request.data['caption'], 'media_type': 1}
                 serializer = PostUploader(data=data)
                 if serializer.is_valid(raise_exception=True):
                     serializer.save()
