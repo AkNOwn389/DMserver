@@ -10,7 +10,9 @@ def custom_exception_handler(exc, context):
         'NotAuthenticated':_handle_authentication_error,
         'Unauthorized':_handle_authentication_error,
         'AuthenticationFailed':_handle_invalidated_,
-        'TypeError':_handle_Type__error_
+        'TypeError':_handle_Type__error_,
+        'InvalidToken': _handle_invalidated_,
+        'MethodNotAllowed': _handle_method_error_,
     }
 
     response = exception_handler(exc, context)
@@ -53,4 +55,9 @@ def _handle_http404__error(exc, content, response):
 def _handle_Type__error_(exc, content, response):
     return JsonResponse({"status": False,
                          "status_code": 400,
+                         "message": exc.__class__.__name__})
+
+def _handle_method_error_(exc, content, response):
+    return JsonResponse({"status": False,
+                         "status_code": response.status_code,
                          "message": exc.__class__.__name__})

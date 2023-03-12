@@ -1,5 +1,6 @@
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import FollowerCount
 from rest_framework.views import APIView
 from django.http import JsonResponse
@@ -183,15 +184,17 @@ class login(APIView):
                     'status_code': 1,
                     'message': 'Invalid password'
                 })
-            user, token = AuthToken.objects.create(user)
+            #user, token = AuthToken.objects.create(user)
+            refresh = RefreshToken.for_user(user)
             return Response({
                 'status': True,
                 'status_code': 200,
                 'message':'login success',
                 'info': user_profile_serialize.data,
                 'token': {
-                    'tokentype': 'token',
-                    'accesstoken': token
+                    'refresh_token': str(refresh),
+                    'tokenType': 'Bearer',
+                    'accesstoken': str(refresh.access_token)
                     }})
             
         
