@@ -6,6 +6,7 @@ urlpatterns = [
     path('usersuggested/page=<int:page>', views.user_suggested.as_view(), name='usersuggested'),
     path('friends/page=<int:page>', views.get_friend.as_view(), name='friends'),
     path('signup/getCode', views.crateSignupCode.as_view(), name = 'getSignupCode'),
+    path('follow/<str:user>', views.Follow.as_view(), name='follow'),
     path('signup', views.signup.as_view(), name='signup'),
     path('login', views.login.as_view(), name='login'),
     path('logout', views.logout.as_view(), name='logout'),

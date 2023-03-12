@@ -84,7 +84,24 @@ class user_suggested(APIView):
                 i['Follower'] = isFollower(request.user, i['user'])
             return JsonResponse({'status': True, 'status_code': 200, 'data': user_profile})
         return JsonResponse({'status': 401,'message': 'user not logged'})
-
+class Follow(APIView):
+    def get(self, request, user):
+        if request.user.is_authenticated:
+            if request.user.username == user:
+                return JsonResponse({"status":False, "status_code": 0, "message": "invalid data"})
+            try:
+                following = User.objects.filter(username = user).first()
+            except:
+                return JsonResponse({'status': False, 'status_code':0, 'message': 'user not exists'})
+            if FollowerCount.objects.filter(follower=request.user, user=following).first():
+                delete_follower = FollowerCount.objects.get(follower=request.user, user=following)
+                delete_follower.delete()
+                return JsonResponse({'status':True,'status_code': 200, 'message': 'unfollowed'})
+            else:
+                new_follower = FollowerCount.objects.create(follower=request.user, user=following)
+                new_follower.save()
+                return JsonResponse({'status':True, 'status_code': 200, 'message': 'following'})
+        return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
 class get_follower(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:

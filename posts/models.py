@@ -49,6 +49,8 @@ class Post(models.Model):
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
+    class Meta:
+        ordering = ("-created_at",)
     def __str__(self):
         return str(self.creator)+" "+self.description
 

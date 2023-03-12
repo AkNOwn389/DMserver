@@ -41,9 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'cloudinary_storage',
     'rest_framework',
     'Authentication',
     'corsheaders',
+    'cloudinary',
     'channels',
     'profiles',
     'users',
@@ -130,7 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'hongkong'
 
 USE_I18N = True
 
@@ -226,7 +228,11 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'deejaygabriel776@gmail.com'
 EMAIL_HOST_PASSWORD = 'xwfzhflvoeewnmhz'
 
-if os.getcwd() == '/app':
-    SECURE_PROXY_SLL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    DEBUG = False
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'dlcgldmau',
+    'API_KEY': '192628236317652',
+    'API_SECRET': '67i3-1ALXcKtkr8x3ErA776EQEw'
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

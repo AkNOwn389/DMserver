@@ -25,7 +25,7 @@ class newsfeed(APIView):
                 user_following_list.append(users.user)
             user_following_list.append(request.user)
             for usernames in user_following_list:
-                feed_lists = Post.objects.filter(creator=usernames)
+                feed_lists = Post.objects.filter(creator=usernames).order_by("created_at")
                 for x in feed_lists:
                     feed.append(x)
             y = PostSerializer(feed[int(limit)-16:int(limit)], many = True)
