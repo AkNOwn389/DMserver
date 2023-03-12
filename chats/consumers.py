@@ -1,8 +1,13 @@
 import json
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from apps.chat.models import ChatRoom, ChatMessage
-from apps.user.models import User, OnlineUser
+from django.contrib.auth.models import User
+from .models import ChatRoom, ChatMessage
+from users.models import OnlineUser
+
+class Test(AsyncWebsocketConsumer):
+	async def connect(self):
+		return {"message": "you are connected"}
 
 class ChatConsumer(AsyncWebsocketConsumer):
 	def getUser(self, userId):
@@ -15,6 +20,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 	def addOnlineUser(self, user):
 		try:
 			OnlineUser.objects.create(user=user)
+			
 		except:
 			pass
 
@@ -52,31 +58,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		await self.channel_layer.group_send('onlineUser', chatMessage)
 
 	async def connect(self):
-		self.userId = self.scope['url_route']['kwargs']['userId']
-		self.userRooms = await database_sync_to_async(
-			list
-		)(ChatRoom.objects.filter(member=self.userId))
-		for room in self.userRooms:
-			await self.channel_layer.group_add(
-				room.roomId,
-				self.channel_name
-			)
-		await self.channel_layer.group_add('onlineUser', self.channel_name)
-		self.user = await database_sync_to_async(self.getUser)(self.userId)
-		await database_sync_to_async(self.addOnlineUser)(self.user)
-		await self.sendOnlineUserList()
-		await self.accept()
+		self.user = self.scope['user']
+		if self.user.is_authenticated:
+			self.user = await database_sync_to_async(self.getUser)(self.user.id)
+			await database_sync_to_async(self.addOnlineUser)(self.user)
+			await self.accept()
 
 	async def disconnect(self, close_code):
 		await database_sync_to_async(self.deleteOnlineUser)(self.user)
-		await self.sendOnlineUserList()
-		for room in self.userRooms:
-			await self.channel_layer.group_discard(
-				room.roomId,
-				self.channel_name
-			)
+
 
 	async def receive(self, text_data):
+		print(text_data)
+		"""
 		text_data_json = json.loads(text_data)
 		action = text_data_json['action']
 		roomId = text_data_json['roomId']
@@ -96,6 +90,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 				'message': chatMessage
 			}
 		)
+		"""
 
 	async def chat_message(self, event):
 		message = event['message']
