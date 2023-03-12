@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
     'rest_framework',
+    'Authentication',
     'corsheaders',
     'channels',
     'profiles',
@@ -215,3 +216,17 @@ SIMPLE_JWT = {
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
+
+
+
+EMAIL_BACKED = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'deejaygabriel776@gmail.com'
+EMAIL_HOST_PASSWORD = 'xwfzhflvoeewnmhz'
+
+if os.getcwd() == '/app':
+    SECURE_PROXY_SLL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    DEBUG = False

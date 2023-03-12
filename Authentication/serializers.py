@@ -2,6 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Refr
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
+from .models import UserRegisterCode
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     TokenObtainPairView,
@@ -9,6 +10,11 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
+class UserRegisterCodeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserRegisterCode
+        fields = ['id', 'email', 'code', 'expiration']
 
 class TokenObtainPairResponseSerializer(serializers.Serializer):
     access = serializers.CharField()

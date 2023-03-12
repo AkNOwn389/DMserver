@@ -1,13 +1,21 @@
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from Authentication.models import UserRegisterCode
+from Authentication.serializers import UserRegisterCodeSerializer
 from users.models import FollowerCount
 from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from knox.auth import AuthToken
-import random
+from django.core.mail import EmailMessage
+from django.conf import settings
+from datetime import timedelta, datetime
+from django.db.models.functions import Now
+from django.core.exceptions import ValidationError
+from smtplib import SMTPRecipientsRefused
+import random, uuid
 
 # Create your views here.
 def isFollowed(me, username):
@@ -205,48 +213,120 @@ class login(APIView):
                 'message': 'User not exists'
             })
         
-class signup(APIView):
+class crateSignupCode(APIView):
+    def sendEmailFromUser(self, code, useremail):
+        email = EmailMessage('Thanks for signing directmessage app here\'s your code',
+                             'your code is: {}.'.format(str(code)),
+                             settings.EMAIL_HOST_USER,
+                             [useremail],
+                             )
+        email.fail_silently = False
+        try:
+            email.send()
+            return True
+        except SMTPRecipientsRefused:
+            return False
+        
     def post(self, request):
+        id = uuid.uuid4()
+        email = request.data['email']
+        username = request.data['username']
+        code = random.randint(100000, 999999)
+        expiration = datetime.now()+timedelta(minutes=5)
+        try:
+            User.objects.get(email = email)
+            return JsonResponse({"status": False, "status_code": 200, "message": "email already exists"})
+        except User.DoesNotExist:
+            pass
+
+        a = UserRegisterCode.objects.filter(expiration__gt = Now())
+        try:
+            a.get(email = email)
+            return JsonResponse({"status": False, "status_code": 200, "message": "already requested please wait 5 minutes"})
+        except:
+            pass
+        data = {"id": id, "email": email, "username": username, "code": code, "expiration": str(expiration)}
+        serialiser = UserRegisterCodeSerializer(data = data)
+        if serialiser.is_valid():
+            if self.sendEmailFromUser(code=code, useremail=email):
+                serialiser.save()
+                return JsonResponse({"status": True, "status_code": 200, "message": "authentication created", 'data': {'regId': id, 'email': email, 'username': username}})
+            
+
+
+        return JsonResponse({"status": False, "status_code": 200, "message": "invalid cridentials"})
+
+
+class signup(APIView):
+    def createAccount(self, name, username, email, password):
+        if len(name) > 1:
+            user = User.objects.create_user(username=username, email=email, password=password, first_name = name[0], last_name = name[1])
+            user.save()
+        else:
+            user = User.objects.create_user(username=username, email=email, password=password, first_name = name[0])
+            user.save()
+        if len(name) > 1:
+            name = name[0]+' '+name[1]
+        elif len(name) > 2:
+            name = name[0]+' '+name[1]+' '+name[2]
+        else:
+            name = name[0]
+        user_model = User.objects.get(username=username)
+        refresh = RefreshToken.for_user(user_model)
+        new_profile = Profile.objects.create(user=user_model, name=name)
+        new_profile.save()
+        user_profile = Profile.objects.filter(user = user).first()
+        user_profile_serialize = ProfileSerializer(user_profile)
+        return Response({
+            'status': True,
+            'message':'register success',
+            'status_code': 200,
+            'info': user_profile_serialize.data,
+            'token': {
+                    'refresh_token': str(refresh),
+                    'tokenType': 'Bearer',
+                    'accesstoken': str(refresh.access_token)
+                    }})
+    def checkCridential(self, code, regId, email):
+        a = UserRegisterCode.objects.filter(expiration__gt=Now())
+        try:
+            b = a.get(id = regId)
+        except UserRegisterCode.DoesNotExist:
+            return False
+        except ValidationError:
+            return False
+        if b.email == email and b.code == code:
+            return True
+
+
+
+    def post(self, request):
+        code = request.data['code']
+        regId = request.data['cridential']
         username = request.data['username']
         email = request.data['email']
         name = request.data['name'].split()
         password = request.data['password']
         password2 = request.data['password2']
-        if password == password2:
-            if User.objects.filter(email=email).exists():
-                return JsonResponse({'status':False,'message': 'Email already exists'})
-            elif User.objects.filter(username=username).exists():
-                return JsonResponse({'status':False,'message': 'Username already exists'})
-            else:
-                if len(name) > 1:
-                    user = User.objects.create_user(username=username, email=email, password=password, first_name = name[0], last_name = name[1])
-                    user.save()
-                else:
-                    user = User.objects.create_user(username=username, email=email, password=password, first_name = name[0])
-                    user.save()
-                if len(name) > 1:
-                    name = name[0]+' '+name[1]
-                elif len(name) > 2:
-                    name = name[0]+' '+name[1]+' '+name[2]
-                else:
-                    name = name[0]
-                user_model = User.objects.get(username=username)
-                _, token = AuthToken.objects.create(user_model)
-                new_profile = Profile.objects.create(user=user_model, name=name)
-                new_profile.save()
-                user_profile = Profile.objects.filter(user = user).first()
-                user_profile_serialize = ProfileSerializer(user_profile)
-                return Response({
-                    'status': True,
-                    'message':'register success',
-                    'status_code': 200,
-                    'info': user_profile_serialize.data,
-                    'token': {
-                        'tokentype': 'token',
-                        'accesstoken': token
-                        }})
-        else:
+        if password != password2:
             return Response({
                 'status': False,
                 'message': 'Password not matches'
             })
+ 
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({
+                'status':False,
+                'message': 'Email already exists'})
+        
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({
+                'status':False,
+                'message': 'Username already exists'})
+        
+        if not self.checkCridential(code, regId, email):
+            return JsonResponse({"status": False, "status_code": 200, "message": "invalid cridentials or expired code"})
+        
+
+        return self.createAccount(name = name, username=username, email=email, password=password)
+   
