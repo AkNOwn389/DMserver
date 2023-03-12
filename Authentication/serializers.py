@@ -1,4 +1,4 @@
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import (
 class TokenObtainPairResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
-
+    
     def create(self, validated_data):
         raise NotImplementedError()
 
@@ -34,7 +34,7 @@ class DecoratedTokenObtainPairView(TokenObtainPairView):
 class TokenRefreshResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
-
+    
     def create(self, validated_data):
         raise NotImplementedError()
 
@@ -94,7 +94,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         # Add custom claims
-        token['name'] = user.name
+        token['email'] = user.email
+        token['username'] = user.username
         # ...
 
         return token

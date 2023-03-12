@@ -169,9 +169,9 @@ REST_KNOX = {
   'AUTO_REFRESH': True,
 }
 """
-ALGO = "HS256"
-ACCESSTOKEN_LIFE_TIME = timedelta(minutes=5)
-REFRESH_TOKEN_LIFETIME = timedelta(days=1)
+ALGORITHYM = "HS256"
+ACCESSTOKEN_LIFE_TIME = timedelta(days=7)
+REFRESH_TOKEN_LIFETIME = timedelta(days=30)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": ACCESSTOKEN_LIFE_TIME,
@@ -180,7 +180,7 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
 
-    "ALGORITHM": ALGO,
+    "ALGORITHM": ALGORITHYM,
     "SIGNING_KEY": SECRET_KEY,
     "VERIFYING_KEY": "",
     "AUDIENCE": None,
@@ -205,7 +205,7 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 
-    "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.MyTokenObtainPairSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "Authentication.serializers.MyTokenObtainPairSerializer",
     "TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSerializer",
     "TOKEN_VERIFY_SERIALIZER": "rest_framework_simplejwt.serializers.TokenVerifySerializer",
     "TOKEN_BLACKLIST_SERIALIZER": "rest_framework_simplejwt.serializers.TokenBlacklistSerializer",

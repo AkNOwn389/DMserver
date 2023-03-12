@@ -9,7 +9,7 @@ import jwt
 @database_sync_to_async
 def get_user(USER):
     try:
-        user = User.objects.get(username = USER)
+        user = User.objects.get(id = USER)
         return user
     except User.DoesNotExist:
         return AnonymousUser()
@@ -23,25 +23,16 @@ class TokenAuthMiddleware(BaseMiddleware):
         headers = scope['headers']
         for x in headers:
             if (x[0].decode()) == "authorization":
-                auth_token = x[1].decode().split()
-                if len(auth_token) !=2:
-                    raise exceptions.AuthenticationFailed("invalid token")
-                token = auth_token[1]
+                token = x[1].decode().split()[1]
+                
                 
         if token is None:
             scope['user'] = AnonymousUser()
         else:
-            try:
-                payload = jwt.decode(token, settings.SECRET_KEY, algorithns=settings.ALGO)
-                username = payload['username']
-                scope['user'] = await get_user(username)
-
-            except jwt.ExpiredSignatureError as ex:
-                raise exceptions.AuthenticationFailed("token expired")
-            except jwt.DecodeError as ex:
-                raise exceptions.AuthenticationFailed("token invalid")
-            except User.DoesNotExist as noUser:
-                raise exceptions.AuthenticationFailed("User Not Exists")
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHYM])
+            print(payload)
+            username = payload['user_id']
+            scope['user'] = await get_user(username)
             
             
 
