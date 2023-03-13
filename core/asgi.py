@@ -16,12 +16,12 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
-from routers import websocket_router
+from routers import routing
 application = ProtocolTypeRouter({
     'http': get_asgi_application(),
     "websocket": TokenAuthMiddleware(AuthMiddlewareStack(
         URLRouter(
-            websocket_router.websocket_urlpatterns
+            routing.websocket_urlpatterns
         )
     )),
 })

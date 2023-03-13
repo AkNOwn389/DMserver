@@ -5,10 +5,6 @@ from django.contrib.auth.models import User
 from .models import ChatRoom, ChatMessage
 from users.models import OnlineUser
 
-class Test(AsyncWebsocketConsumer):
-	async def connect(self):
-		return {"message": "you are connected"}
-
 class ChatConsumer(AsyncWebsocketConsumer):
 	def getUser(self, userId):
 		return User.objects.get(id=userId)
@@ -16,19 +12,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 	def getOnlineUsers(self):
 		onlineUsers = OnlineUser.objects.all()
 		return [onlineUser.user.id for onlineUser in onlineUsers]
-
-	def addOnlineUser(self, user):
-		try:
-			OnlineUser.objects.create(user=user)
-			
-		except:
-			pass
-
-	def deleteOnlineUser(self, user):
-		try:
-			OnlineUser.objects.get(user=user).delete()
-		except:
-			pass
 
 	def saveMessage(self, message, userId, roomId):
 		userObj = User.objects.get(id=userId)
@@ -58,14 +41,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		await self.channel_layer.group_send('onlineUser', chatMessage)
 
 	async def connect(self):
+		
 		self.user = self.scope['user']
 		if self.user.is_authenticated:
+			print("connection from: ", self.user)
 			self.user = await database_sync_to_async(self.getUser)(self.user.id)
-			await database_sync_to_async(self.addOnlineUser)(self.user)
 			await self.accept()
 
 	async def disconnect(self, close_code):
-		await database_sync_to_async(self.deleteOnlineUser)(self.user)
+		print("connection close:", close_code)
 
 
 	async def receive(self, text_data):

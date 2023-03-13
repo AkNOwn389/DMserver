@@ -90,7 +90,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 CHANNEL_LAYERS ={
     'default': {
-    "BACKEND": "channels.layers.InMemoryChannelLayer"
+    "BACKEND": "channels.layers.InMemoryChannelLayer",
+    #"CONFIG": {
+        #"hosts": [('127.0.0.1', 6379)]
+        #}
     }
 }
 
@@ -132,7 +135,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'hongkong'
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 

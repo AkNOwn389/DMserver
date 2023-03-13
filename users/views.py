@@ -11,11 +11,13 @@ from django.contrib.auth.models import User
 from knox.auth import AuthToken
 from django.core.mail import EmailMessage
 from django.conf import settings
-from datetime import timedelta, datetime
+from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from smtplib import SMTPRecipientsRefused
 import random, uuid
+from django.utils import timezone
+from datetime import datetime
 
 # Create your views here.
 def isFollowed(me, username):
@@ -210,7 +212,13 @@ class login(APIView):
                     'message': 'Invalid password'
                 })
             #user, token = AuthToken.objects.create(user)
+            user.last_login = timezone.now()
+            user.save()
+            #save date
             refresh = RefreshToken.for_user(user)
+            refresh['username'] = user.username
+            refresh['email'] = user.email
+
             return Response({
                 'status': True,
                 'status_code': 200,
