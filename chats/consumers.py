@@ -6,40 +6,6 @@ from .models import ChatRoom, ChatMessage
 from users.models import OnlineUser
 
 class ChatConsumer(AsyncWebsocketConsumer):
-	def getUser(self, userId):
-		return User.objects.get(id=userId)
-
-	def getOnlineUsers(self):
-		onlineUsers = OnlineUser.objects.all()
-		return [onlineUser.user.id for onlineUser in onlineUsers]
-
-	def saveMessage(self, message, userId, roomId):
-		userObj = User.objects.get(id=userId)
-		chatObj = ChatRoom.objects.get(roomId=roomId)
-		chatMessageObj = ChatMessage.objects.create(
-			chat=chatObj, user=userObj, message=message
-		)
-		return {
-			'action': 'message',
-			'user': userId,
-			'roomId': roomId,
-			'message': message,
-			'userImage': userObj.image.url,
-			'userName': userObj.first_name + " " + userObj.last_name,
-			'timestamp': str(chatMessageObj.timestamp)
-		}
-
-	async def sendOnlineUserList(self):
-		onlineUserList = await database_sync_to_async(self.getOnlineUsers)()
-		chatMessage = {
-			'type': 'chat_message',
-			'message': {
-				'action': 'onlineUser',
-				'userList': onlineUserList
-			}
-		}
-		await self.channel_layer.group_send('onlineUser', chatMessage)
-
 	async def connect(self):
 		
 		self.user = self.scope['user']
