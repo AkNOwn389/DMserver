@@ -4,6 +4,6 @@ from users import consumer
 from chats import consumers
 
 websocket_urlpatterns = [
-    path('chats/', consumers.ChatConsumer.as_asgi()),
+    re_path(r'^chat_ws$', consumers.ChatConsumer.as_asgi()),
     path('user/connect', consumer.LoginSocket.as_asgi()),
 ]

@@ -8,6 +8,7 @@ from time_.get_time import getStringTime
 from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
 from django.http import JsonResponse
+from datetime import datetime
 # Create your views here.
 
 
@@ -25,13 +26,15 @@ class newsfeed(APIView):
                 user_following_list.append(users.user)
             user_following_list.append(request.user)
             for usernames in user_following_list:
-                feed_lists = Post.objects.filter(creator=usernames).order_by("created_at")
+                feed_lists = Post.objects.filter(creator=usernames).order_by("-created_at")
                 for x in feed_lists:
                     feed.append(x)
             y = PostSerializer(feed[int(limit)-16:int(limit)], many = True)
             for i in y.data:
+                
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
+                i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
             if len(y.data) == 16:
                 return JsonResponse({'status_code': 200, 'status': True, 'message': 'success', 'hasMorePage': True, 'data': y.data})

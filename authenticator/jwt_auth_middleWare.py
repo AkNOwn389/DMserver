@@ -13,7 +13,7 @@ class JWTAuthentication(BaseAuthentication):
             raise exceptions.AuthenticationFailed("invalid token")
         token = auth_data[1]
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY,algorithns="HS256")
+            payload = jwt.decode(token, settings.SECRET_KEY,algorithms=["HS256"])
             username = payload['username']
             user = User.objects.get(username = username)
             return (user, token)

@@ -1,6 +1,7 @@
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import BlacklistedToken, OutstandingToken
 from Authentication.models import UserRegisterCode
 from Authentication.serializers import UserRegisterCodeSerializer
 from users.models import FollowerCount
@@ -8,14 +9,13 @@ from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from knox.auth import AuthToken
 from django.core.mail import EmailMessage
 from django.conf import settings
 from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from smtplib import SMTPRecipientsRefused
-import random, uuid
+import random, uuid, jwt
 from django.utils import timezone
 from datetime import datetime
 
@@ -176,24 +176,30 @@ class get_friend(APIView):
 
 class logout(APIView):
     def get(self, request):
-        key = request.headers['Authorization'].split()[1][:8]
-        user = AuthToken.objects.get(token_key = key)
-        if user is None:
-            return JsonResponse({'status_code': 401, 'message': 'system failure'})
-        user.delete()
-        return JsonResponse({'status': True, 'message': 'user logged-out'})
+        if request.user.is_authenticated:
+            """
+            key = request.headers['Authorization'].split()[1]
+            print(key)
+            user = RefreshToken(key)
+            user.blacklist()
+            """
+            return JsonResponse({'status': True, 'message': 'user logged-out'})
 
     def post(self, request):
-        user = User.objects.filter(username = request.user).first()
-        if user is not None:
-            if not user.check_password(request.data['password']):
-                return Response({
-                    'status': False,
-                    'message': 'Invalid password'
-                })
-            user_token = AuthToken.objects.filter(user = request.user)
-            user_token.delete()
-            return JsonResponse({'status': True, 'message': 'all account logged-out'})
+        if request.user.is_authenticated:
+            user = User.objects.filter(username = request.user).first()
+            if user is not None:
+                if not user.check_password(request.data['password']):
+                    return Response({
+                        'status': False,
+                        'message': 'Invalid password'
+                    })
+                a = OutstandingToken.objects.filter(user_id = user.id)
+                for token in a:
+                    c = RefreshToken(token.token)
+                    c.blacklist()
+                
+                return JsonResponse({'status': True, 'message': 'all account logged-out'})
         
 class login(APIView):
     def post(self, request):

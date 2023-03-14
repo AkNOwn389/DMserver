@@ -7,7 +7,8 @@ from users.models import FollowerCount
 from profiles.serializers import ProfileSerializer
 from rest_framework.views import APIView
 from django.http import JsonResponse
-from .serializers import ImagesSerializer, PostUploader
+from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
+from .models import Comment
 
 # Create your views here.
 class upload(APIView):
@@ -37,7 +38,7 @@ class upload(APIView):
                 if not isError:
                     for i in images:
                         post.images_url.create(image = i)
-
+                    post.save()
                     return JsonResponse({'status': True,'status_code': 200, 'message': 'upload data success'})
                 else:
                     post.delete()
@@ -90,11 +91,13 @@ class Like_Post(APIView):
                 new_like.save()
                 post.NoOflike = post.NoOflike+1
                 post.save()
+                print(post_id+" Like")
                 return JsonResponse({
                     'status': True,
                     'message': 'post like',
                     'post_likes': post.NoOflike})
             else:
+                print(post_id+" UnLike")
                 like_filter.delete()
                 post.NoOflike = post.NoOflike-1
                 post.save()
@@ -133,3 +136,24 @@ class MyGallery(APIView):
                              "message":"invalid token",
                              "status_code":401,
                              "data": []})
+    
+class CommentView(APIView):
+    def post(self, request):
+        if request.user.is_authenticated:
+            user = request.user
+            user_profile = Profile.objects.get(user = user)
+            comment = request.data['comment']
+            post_id = request.data['post_id']
+            try:
+                a = Post.objects.get(post_id = post_id)
+            except Post.DoesNotExist:
+                return JsonResponse({'status': False, 'status_code': 200, 'message': 'post doest not exists'})
+            
+            data = {'avatar': user_profile.profileimg, 'post_id': post_id, 'comment': comment, 'user': user}
+
+            b = PostCommentSerializer(data=data)
+            if b.is_valid(raise_exception=True):
+                b.save()
+                return JsonResponse({'status': True, 'status_code': 200, 'message': 'comment created'})
+            
+        return JsonResponse({'status': False, 'status_code': 401, 'message': 'invalid token'})

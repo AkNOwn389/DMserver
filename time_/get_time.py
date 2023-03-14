@@ -1,6 +1,8 @@
 from datetime import datetime, date
 
 
+
+
 def calCulateDate(date__):
     date___ = str(date__).split("-")
     now__ = str(date.today()).split("-")
@@ -43,18 +45,29 @@ def calCulateDate(date__):
 
 
 def getStringTime(time):
+    dateNow = datetime.now()
+    timeNow = str(dateNow).split()[1]
     date_time = str(time).split("T")
     date_ = date_time[0]
     time_ = date_time[1].split(':')
     if date_ == str(date.today()):
-        theTime = "today"
+        if time_[0] == str(timeNow).split(":")[0]:
+            print(time_[0])
+            print(str(timeNow).split(":")[1])
+            if int(str(timeNow).split(":")[1]) -int(time_[1]) < 10:
+                return "Just Now {}m".format(str(int(time_[1])-int(str(timeNow).split(":")[1]))).replace("-", '')
+            elif int(str(timeNow).split(":")[1]) -int(time_[1]) < 30:
+                return "{}m ago.".format(str(int(time_[1])-int(str(timeNow).split(":")[1]))).replace("-", '')
+            else:
+                theTime = "today"
+        else:
+            theTime = "today"
     else:
         theTime = calCulateDate(date_)
-    if time_[0][0] == "0" or time_[0][0] == "1" or time_[0][0] == "2":
+    if time_[0][0] == "0" or time_[0] == "10" or time_[0] == "11" or time_[0] == "12":
         oras = "am"
         hour = time_[0][1:]
     else:
         oras = "pm"
-        hour = time_[0]
-    
+        hour = str(int(time_[0]) -12)
     return f"{theTime} {hour}:{time_[1]}{oras}"

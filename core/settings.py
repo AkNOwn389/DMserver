@@ -33,26 +33,27 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    #
+    # 'daphne',
     'rest_framework_simplejwt.token_blacklist',
-    'django.contrib.admin',
-    'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
     'cloudinary_storage',
+    'django.contrib.admin',
+    'django.contrib.auth',
     'rest_framework',
     'Authentication',
     'corsheaders',
     'cloudinary',
-    'channels',
     'profiles',
     'users',
     'feeds',
     'chats',
     'posts',
-    'knox'
 ]
 
 MIDDLEWARE = [
@@ -85,8 +86,9 @@ TEMPLATES = [
     },
 ]
 
-ASGI_APPLICATION = 'core.asgi.application'
+
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
 
 CHANNEL_LAYERS ={
     'default': {
@@ -96,7 +98,6 @@ CHANNEL_LAYERS ={
         #}
     }
 }
-
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
@@ -141,7 +142,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -161,20 +162,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (#'knox.auth.TokenAuthentication',
-    'rest_framework_simplejwt.authentication.JWTAuthentication',),
+    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
     'EXCEPTION_HANDLER': 'utils.exceptionHandler.custom_exception_handler',
     }
-"""
-REST_KNOX = {
-  'SECURE_HASH_ALGORITHM': 'cryptography.hazmat.primitives.hashes.SHA512',
-  'AUTH_TOKEN_CHARACTER_LENGTH': 64,
-  'TOKEN_TTL': timedelta(days=6),
-  'USER_SERIALIZER': 'knox.serializers.UserSerializer',
-  'TOKEN_LIMIT_PER_USER': None,
-  'AUTO_REFRESH': True,
-}
-"""
+
 ALGORITHYM = "HS256"
 ACCESSTOKEN_LIFE_TIME = timedelta(days=7)
 REFRESH_TOKEN_LIFETIME = timedelta(days=30)

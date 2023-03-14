@@ -2,13 +2,14 @@ from django.contrib.auth.models import User
 from django.db import models
 import uuid, random, os
 
+
 # Create your models here.
 def post_rdm_name(a, b):
     c, d = os.path.splitext(b)
     while True:
         e = ''.join((str(random.randint(0, 9))) for x in range(40))
         f = f"post_images/{str(e)}{str(d)}"
-        g = Images.objects.filter(image=f).first()
+        g = Image.objects.filter(image=f).first()
         if g is None:
             return str(f)
     
@@ -20,7 +21,7 @@ def post_videos_rdm_name(a, b):
         g = Post.objects.filter(images_url=f).first()
         if g is None:
             return f
-class Images(models.Model):
+class Image(models.Model):
     image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image")
     class Meta:
         ordering = ['image']
@@ -39,7 +40,7 @@ class Post(models.Model):
     source = models.TextField(max_length=200, default="direct message")
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creator')
     creator_full_name = models.TextField(max_length=200)
-    images_url = models.ManyToManyField(Images, blank=True)
+    images_url = models.ManyToManyField(Image, blank=True)
     videos_url = models.ManyToManyField(Videos, blank=True)
     title = models.TextField(blank=True)
     perma_link = models.TextField(blank=True)
@@ -50,12 +51,12 @@ class Post(models.Model):
     NoOfcomment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
     class Meta:
-        ordering = ("-created",)
+        ordering = ("-created_at",)
         
     def __str__(self):
         return str(self.creator)+" "+self.description
 
-class Postcomment(models.Model):
+class Comment(models.Model):
     post_id = models.UUIDField(primary_key=True)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

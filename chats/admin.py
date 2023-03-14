@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import ChatMessage, ChatRoom
+from .models import singleOneToOneRoom, message
 # Register your models here.
-lists=[ChatMessage,
-       ChatRoom]
+lists=[singleOneToOneRoom,
+       message]
 admin.site.register(lists)

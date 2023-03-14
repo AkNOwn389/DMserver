@@ -1,8 +1,10 @@
 from django.contrib import admin
-from .models import Post, Postcomment
+from .models import Post, Comment, LikePost, Image
 # Register your models here.
 lists = [
     Post,
-    Postcomment
+    Comment,
+    LikePost,
+    Image
 ]
 admin.site.register(lists)

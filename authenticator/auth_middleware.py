@@ -1,8 +1,8 @@
 from django.contrib.auth.models import AnonymousUser
-from knox.auth import AuthToken
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 
+"""
 @database_sync_to_async
 def get_user(token_key):
     try:
@@ -26,3 +26,4 @@ class TokenAuthMiddleware(BaseMiddleware):
         else:
             scope['user'] = await get_user(token_key)
         return await super().__call__(scope, receive, send)
+"""
