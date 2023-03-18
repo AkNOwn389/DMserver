@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
     'cloudinary_storage',
@@ -48,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'Authentication',
     'corsheaders',
+    'notifications',
     'cloudinary',
     'profiles',
     'users',
@@ -109,6 +109,11 @@ DATABASES = {
         'PASSWORD': '123456',
         'HOST': '127.0.0.1',
         'PORT': '3306',
+        'OPTIONS': {
+    'read_default_file': '/platform/auth/mysql.conf',
+    'charset': 'utf8mb4',
+        },
+        'ATOMIC_REQUESTS': True,
     }
 }
 

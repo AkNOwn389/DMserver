@@ -57,7 +57,7 @@ class Post(models.Model):
         return str(self.creator)+" "+self.description
 
 class Comment(models.Model):
-    post_id = models.UUIDField(primary_key=True)
+    post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     comments = models.TextField(max_length=1500)

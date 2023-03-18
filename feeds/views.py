@@ -13,6 +13,9 @@ from datetime import datetime
 
 
 class newsfeed(APIView):
+    err = {'status': False, 'status_code': 401, 'message': 'user not logged'}
+    data = {'status_code': 200, 'status': True, 'message': 'success'}
+
     def get(self, request, page):
         if request.user.is_authenticated:
             me = Profile.objects.filter(user = request.user).first()
@@ -37,8 +40,32 @@ class newsfeed(APIView):
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
             if len(y.data) == 16:
-                return JsonResponse({'status_code': 200, 'status': True, 'message': 'success', 'hasMorePage': True, 'data': y.data})
+                self.data['hasMorePage'] = True
+                self.data['data'] = y.data
+                return JsonResponse(self.data)
             else:
-                return JsonResponse({'status_code': 200, 'status': True, 'message': 'success', 'hasMorePage': False, 'data': y.data})
+                self.data['hasMorePage'] = False
+                self.data['data'] = y.data
+                return JsonResponse(self.data)
 
-        return JsonResponse({'status': False, 'status_code': 401, 'message': 'user not logged'})
+        return JsonResponse(self.err)
+    
+
+class MyPostView(APIView):
+    err = {"status": False, "status_code": 401, "message": "invalidated"}
+    err_not_foud = {"status": False, "status_code": 404, "message": "Not found"}
+    no_data = {"status": False, "status_code": 200, "message": "no posts", "data": []}
+    data = {"status": True, "status_code": 200, "message": "success"}
+
+    def get(self, request, page):
+        if request.user.is_authenticated:
+            user = request.user
+            page = page*16
+            post = Post.objects.filter(creator = user)
+            if post is None:
+                return JsonResponse(self.no_data)
+            serializer = PostSerializer(post[int(page)-16: int(page)], many=True)
+            self.data['data'] = serializer.data
+            return JsonResponse(data=self.data)
+        return JsonResponse(self.err)
+

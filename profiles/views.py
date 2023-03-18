@@ -168,10 +168,10 @@ class avatarView(APIView):
     def get(self, request, user):
         me = request.user
         if me.is_authenticated:
-            user_request = User.objects.filter(username = user).first()
+            user_request = User.objects.get(username = user)
             if user_request is None:
                 return JsonResponse({'status': False,'status_code': 200, 'message': 'user doests not exists', 'avatar': None})
             she = Profile.objects.filter(user = user_request).first()
             she = ProfileSerializer(she)
-            return JsonResponse({'status': True,'status_code': 200, 'message': 'success', 'avatar': str(she.data['profileimg']), 'name': str(she.data['name'])})
+            return JsonResponse({'status': True,'status_code': 200, 'message': 'success', 'avatar': str(she.data['profileimg']), 'username': user_request.username, 'name': str(she.data['name'])})
         return JsonResponse({"status": False,"status_code":401,"message":"invalid user"})

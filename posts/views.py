@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from posts.models import Post, LikePost
 from profiles.models import  Profile
 from users.models import FollowerCount
+from profiles.views import getAvatarByUsername
+from time_.get_time import getStringTime
 from profiles.serializers import ProfileSerializer
 from rest_framework.views import APIView
 from django.http import JsonResponse
@@ -91,13 +93,11 @@ class Like_Post(APIView):
                 new_like.save()
                 post.NoOflike = post.NoOflike+1
                 post.save()
-                print(post_id+" Like")
                 return JsonResponse({
                     'status': True,
                     'message': 'post like',
                     'post_likes': post.NoOflike})
             else:
-                print(post_id+" UnLike")
                 like_filter.delete()
                 post.NoOflike = post.NoOflike-1
                 post.save()
@@ -107,16 +107,24 @@ class Like_Post(APIView):
                     'post_likes': post.NoOflike})
             
 class get_post_list(APIView):
+    success = {'status': True,'status_code': 200, 'message': 'beta test'}
+    err = {"status":False, "message":"invalid token", "status_code":401}
     def get(self, request, page):
         user = request.user
         if user.is_authenticated:
+            me = ProfileSerializer(Profile.objects.get(user = request.user))
             post_list = Post.objects.filter(creator=user)
-            limit = page*8
-            serializer = PostSerializer(post_list[int(limit)-8:int(limit)], many = True)
-            return JsonResponse({'status': True,'status_code': 200, 'message': 'beta test', 'data': serializer.data})
-        return JsonResponse({"status":False,
-                             "message":"invalid token",
-                             "status_code":401})
+            limit = page*16
+            serializer = PostSerializer(post_list[int(limit)-16:int(limit)], many = True)
+            for i in serializer.data:
+                i['creator_avatar'] = getAvatarByUsername(i['creator'])
+                i['your_avatar'] = me.data['profileimg']
+                i['dateCreated'] = i['created_at']
+                i['created_at'] = getStringTime(i['created_at'])
+            self.success['data'] = serializer.data
+            return JsonResponse(self.success)
+        return JsonResponse(self.err)
+    
 class MyGallery(APIView):
     def get(self, request, page):
         user = request.user
@@ -138,6 +146,9 @@ class MyGallery(APIView):
                              "data": []})
     
 class CommentView(APIView):
+    success = {'status': True, 'status_code': 200, 'message': 'success'}
+    error_validation = {'status': False, 'status_code': 200, 'message': 'validation error'}
+    err_not_exists = {'status': False, 'status_code': 200, 'message': 'post doest not exists'}
     def post(self, request):
         if request.user.is_authenticated:
             user = request.user
@@ -145,15 +156,14 @@ class CommentView(APIView):
             comment = request.data['comment']
             post_id = request.data['post_id']
             try:
-                a = Post.objects.get(post_id = post_id)
+                post = Post.objects.get(id = post_id)
             except Post.DoesNotExist:
-                return JsonResponse({'status': False, 'status_code': 200, 'message': 'post doest not exists'})
-            
-            data = {'avatar': user_profile.profileimg, 'post_id': post_id, 'comment': comment, 'user': user}
+                return JsonResponse(self.err_not_exists)
 
-            b = PostCommentSerializer(data=data)
-            if b.is_valid(raise_exception=True):
-                b.save()
-                return JsonResponse({'status': True, 'status_code': 200, 'message': 'comment created'})
-            
-        return JsonResponse({'status': False, 'status_code': 401, 'message': 'invalid token'})
+            a = Comment.objects.create(post_id = post_id, avatar = user_profile.profileimg, comments = comment, user = user)
+            a.save()
+            post.NoOfcomment = post.NoOfcomment+1
+            post.save()
+            return JsonResponse(self.success)
+
+        return JsonResponse(self.error_validation)

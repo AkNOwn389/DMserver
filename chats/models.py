@@ -16,14 +16,13 @@ class singleOneToOneRoom(models.Model):
 
 
 class message(models.Model):
-    room = models.ForeignKey(
-        singleOneToOneRoom, on_delete=models.CASCADE, related_name="messages")
     message_body = models.TextField()
     sender = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="msg_sender")
     receiver = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="msg_receiver")
-    timeStamp = models.DateField(auto_now_add=True)
+    date_time = models.DateTimeField(auto_now_add=True)
+    is_delete = models.BooleanField(default=False)
     seen = models.BooleanField(default=False)
 
     def __str__(self):

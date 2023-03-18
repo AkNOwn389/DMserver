@@ -14,6 +14,7 @@ from django.conf import settings
 from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
+from rest_framework_simplejwt.exceptions import TokenError
 from smtplib import SMTPRecipientsRefused
 import random, uuid, jwt
 from django.utils import timezone
@@ -175,16 +176,25 @@ class get_friend(APIView):
         return JsonResponse({"status": False,"status_code":401,"message":"invalid user"})
 
 class logout(APIView):
-    def get(self, request):
+    def post(self, request):
         if request.user.is_authenticated:
-            """
             key = request.headers['Authorization'].split()[1]
+            refresh = request.data['refresh_token']
+            try:
+                a = RefreshToken(refresh)
+                a.blacklist()
+            except TokenError:
+                pass
+            """
             print(key)
-            user = RefreshToken(key)
-            user.blacklist()
+            token = jwt.decode(key, settings.SECRET_KEY, algorithms=[settings.ALGORITHYM])
+            print(token)
+            token_id = token['id']
+            blacklistedtoken = BlacklistedToken.objects.create(token_id=token_id, blacklisted_at = timezone.now())
+            blacklistedtoken.save()
             """
             return JsonResponse({'status': True, 'message': 'user logged-out'})
-
+class logoutAll(APIView):
     def post(self, request):
         if request.user.is_authenticated:
             user = User.objects.filter(username = request.user).first()
@@ -196,8 +206,8 @@ class logout(APIView):
                     })
                 a = OutstandingToken.objects.filter(user_id = user.id)
                 for token in a:
-                    c = RefreshToken(token.token)
-                    c.blacklist()
+                    blacklistedtoken = BlacklistedToken.objects.create(token_id=token.id, blacklisted_at = timezone.now())
+                    blacklistedtoken.save()
                 
                 return JsonResponse({'status': True, 'message': 'all account logged-out'})
         
@@ -224,6 +234,7 @@ class login(APIView):
             refresh = RefreshToken.for_user(user)
             refresh['username'] = user.username
             refresh['email'] = user.email
+            refresh['date_logged'] = str(datetime.now())
 
             return Response({
                 'status': True,
