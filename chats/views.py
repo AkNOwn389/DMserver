@@ -69,9 +69,16 @@ class GetMessageView(APIView):
             messages = message.objects.filter(
                 Q(sender = request.user, receiver = pk
                 ) | Q(sender = pk, receiver = request.user
-                )).order_by("-timeStamp")
+                )).order_by("-date_time")
             
             c = MessagesSerialiser(messages, many = True)
+            for i in c.data:
+                i['username'] = i['receiver'] if i['sender'] == request.user.username else i['sender']
+                i['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = i['sender'])).name
+                i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
+                i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
+                i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
+                i['type'] = 1 if i['username'] == request.user.username else 2
             if len(c.data) == 16:
                 has_more_page = True
             data['hasMorePage'] = has_more_page

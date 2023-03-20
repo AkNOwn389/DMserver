@@ -12,4 +12,4 @@ class MessagesSerialiser(serializers.ModelSerializer):
         )
     class Meta:
         model = message
-        fields = ['message_body', 'sender', 'receiver', 'date_time', 'seen']
+        fields = ['message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete']
