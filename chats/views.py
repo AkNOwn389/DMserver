@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from.models import  message
-from .serializers import MessagesSerialiser
+from .serializers import MessagesSerialiser, MessagesSender
 from authenticator.isAuth import AuthUser
 from django.db.models import Q
 
@@ -62,25 +62,27 @@ class GetMessageView(APIView):
         if AuthUser(request):
             page = page*16
             try:
-                pk = User.objects.get(Q(username = pk) | Q(id = pk))
+                pk = User.objects.get(username = pk)
             except User.DoesNotExist:
                 return Response(err404)
             
             messages = message.objects.filter(
                 Q(sender = request.user, receiver = pk
                 ) | Q(sender = pk, receiver = request.user
-                )).order_by("-date_time")
-            
-            c = MessagesSerialiser(messages, many = True)
+                )).order_by("date_time")
+            messages.reverse
+            c = MessagesSerialiser(messages[int(page)-16: int(page)], many = True)
             for i in c.data:
                 i['username'] = i['receiver'] if i['sender'] == request.user.username else i['sender']
                 i['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = i['sender'])).name
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
                 i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
-                i['type'] = 1 if i['username'] == request.user.username else 2
+                i['type'] = 2 if i['username'] == request.user.username else 1
             if len(c.data) == 16:
                 has_more_page = True
+            else:
+                has_more_page = False
             data['hasMorePage'] = has_more_page
             data['data'] = c.data
             return Response(data)
@@ -91,7 +93,18 @@ class sendmessage(APIView):
     self_err = {'status': False, 'status_code': 404,'message': 'You can\'t send message to your self'}
     error404 = {'status': False, 'status_code': 404,'message': 'User not exists'}
     success = {'status': True, 'status_code': 200, 'message': 'send success'}
-
+    def RETURN(self, id, request):
+        msg = MessagesSerialiser(message.objects.get(id = id))
+        username = msg.data['receiver'] if msg.data['sender'] == request.user.username else msg.data['sender']
+        self.success['data'] = msg.data
+        self.success['data']['username'] = username
+        self.success['data']['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = msg.data['sender'])).name
+        self.success['data']['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = msg.data['receiver'])).name
+        self.success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = username)).name
+        self.success['data']['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = username))).data['profileimg']
+        self.success['data']['type'] = 2 if username == request.user.username else 1
+        return Response(self.success)
+    
     def post(self, request):
         if request.user.is_authenticated:
             sender_model = User.objects.get(username=request.user)
@@ -107,10 +120,10 @@ class sendmessage(APIView):
                 'receiver': receiver_model.id,
                 'message_body': request.data['message']}
 
-            serializers = MessagesSerialiser(data=data)
+            serializers = MessagesSender(data=data)
             if serializers.is_valid(raise_exception=True):
                 serializers.save()
-                return Response(self.success)
+                return self.RETURN(serializers.data['id'], request)
             return Response(errInput)
         
         return Response(self.error404)
