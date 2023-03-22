@@ -43,6 +43,8 @@ class MessagePageView(APIView):
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
                 i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
+                if i['sender'] == request.user.username:
+                    i['message_body'] = f"You: {i['message_body']}"
             has_more_page = False
             if len(c.data) == 16:
                 has_more_page = True
@@ -66,11 +68,7 @@ class GetMessageView(APIView):
             except User.DoesNotExist:
                 return Response(err404)
             
-            messages = message.objects.filter(
-                Q(sender = request.user, receiver = pk
-                ) | Q(sender = pk, receiver = request.user
-                )).order_by("date_time")
-            messages.reverse
+            messages = message.objects.filter(Q(sender = request.user, receiver = pk) | Q(sender = pk, receiver = request.user)).order_by("-date_time")
             c = MessagesSerialiser(messages[int(page)-16: int(page)], many = True)
             for i in c.data:
                 i['username'] = i['receiver'] if i['sender'] == request.user.username else i['sender']
@@ -78,7 +76,8 @@ class GetMessageView(APIView):
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
                 i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
-                i['type'] = 2 if i['username'] == request.user.username else 1
+                i['type'] = 2 if i['receiver'] == request.user.username else 1
+
             if len(c.data) == 16:
                 has_more_page = True
             else:
@@ -163,6 +162,22 @@ class MessageBadge(APIView):
             if messages is None:
                 Response({"status": True, "status_code": 200, "message": "success", "length": len(messages)})
         Response(self.error400)
+
+class Seen(APIView):
+    err404 = {'status': False, 'status_code': 401,'message': 'message not exists'}
+    error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
+    def get(self, request, message_id):
+        if request.user.is_authenticated:
+            try:
+                msg = message.objects.get(id = message_id)
+            except message.DoesNotExist:
+                return Response(self.err404)
+            
+            msg.seen = True
+            msg.save()
+            return Response({"status": True, "status_code": 200, "message": "message seen"})
+        
+        return Response(self.error400)
 
 
 
