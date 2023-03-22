@@ -6,4 +6,5 @@ urlpatterns = [
     path('mychatpage/page=<int:page>', views.MessagePageView.as_view(), name='mymessage?'),
     path('getmessage/<str:pk>/page=<int:page>', views.GetMessageView.as_view(), name="mymessage"),
     path('messagepage/page=<int:page>', views.MessagePageView.as_view(), name="messagePage"),
+    path('notify', views.Notify.as_view(), name="notify")
 ]

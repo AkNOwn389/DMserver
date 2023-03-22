@@ -92,6 +92,7 @@ class GetMessageView(APIView):
 class sendmessage(APIView):
     self_err = {'status': False, 'status_code': 404,'message': 'You can\'t send message to your self'}
     error404 = {'status': False, 'status_code': 404,'message': 'User not exists'}
+    error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
     success = {'status': True, 'status_code': 200, 'message': 'send success'}
     def RETURN(self, id, request):
         msg = MessagesSerialiser(message.objects.get(id = id))
@@ -126,5 +127,43 @@ class sendmessage(APIView):
                 return self.RETURN(serializers.data['id'], request)
             return Response(errInput)
         
-        return Response(self.error404)
+        return Response(self.error400)
+
+class Notify(APIView):
+    self_err = {'status': False, 'status_code': 401,'message': 'invalid'}
+    error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
+    success = {'status': True, 'status_code': 200, 'message': 'notify', 'data': []}
+    def get(self, request):
+        if request.user.is_authenticated:
+            messages = message.objects.filter(receiver = request.user, seen = False).order_by("-date_time")
+            if messages is None:
+                self.success['message'] = "notify"
+                self.success['data'] = []
+                return JsonResponse(self.success)
+            serialiser = MessagesSerialiser(messages, many = True)
+            for msg in serialiser.data:
+                username = msg['receiver'] if msg['sender'] == request.user.username else msg['sender']
+                msg['username'] = username
+                msg['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = msg['sender'])).name
+                msg['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = msg['receiver'])).name
+                msg['user_full_name'] = Profile.objects.get(user = User.objects.get(username = username)).name
+                msg['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = username))).data['profileimg']
+                msg['type'] = 2 if username == request.user.username else 1
+            self.success['length'] = len(serialiser.data)
+            self.success['data'] = serialiser.data
+            return Response(self.success)
+        return Response(self.error400)
+    
+class MessageBadge(APIView):
+    error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
+    err = {'status': False, 'status_code': 401,'message': 'invalid user'}
+    def get(self, request):
+        if request.user.is_authenticated:
+            messages = message.objects.filter(receiver = request.user, seen = False).order_by("-date_time")
+            if messages is None:
+                Response({"status": True, "status_code": 200, "message": "success", "length": len(messages)})
+        Response(self.error400)
+
+
+
 
