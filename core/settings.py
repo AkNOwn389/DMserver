@@ -33,8 +33,8 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    #
-    # 'daphne',
+    #'channels',
+    #'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

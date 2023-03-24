@@ -8,11 +8,31 @@ from profiles.views import getAvatarByUsername
 from time_.get_time import getStringTime
 from profiles.serializers import ProfileSerializer
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.http import JsonResponse
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from .models import Comment
 
 # Create your views here.
+#class response
+success = {"status": True, "status_code": 200}
+err_401 = {"status": False, "status_code": 401}
+err_402 = {"status": False, "status_code": 402}
+err_403 = {"status": False, "status_code": 403}
+err_404 = {"status": False, "status_code": 404}
+err_405 = {"status": False, "status_code": 405}
+err_406 = {"status": False, "status_code": 406}
+err_407 = {"status": False, "status_code": 407}
+err_408 = {"status": False, "status_code": 408}
+err_409 = {"status": False, "status_code": 409}
+err_410 = {"status": False, "status_code": 410}
+err_411 = {"status": False, "status_code": 411}
+err_412 = {"status": False, "status_code": 412}
+err_413 = {"status": False, "status_code": 413}
+err_414 = {"status": False, "status_code": 414}
+err_415 = {"status": False, "status_code": 415}
+err_416 = {"status": False, "status_code": 416}
+
 class upload(APIView):
     def post(self, request):
         if request.user.is_authenticated:
@@ -124,6 +144,34 @@ class get_post_list(APIView):
             self.success['data'] = serializer.data
             return JsonResponse(self.success)
         return JsonResponse(self.err)
+def getUser(user):
+    try:
+        a = User.objects.get(id = user)
+        return a
+    except User.DoesNotExist:
+        pass
+    try:
+        a = User.objects.get(username = user)
+    except User.DoesNotExist:
+        pass
+    try:
+        a = User.objects.get(email = user)
+    except User.DoesNotExist:
+        pass
+
+    return None
+
+class PostView(APIView):
+    def get(self, request, user, page):
+        if request.user.is_authenticated:
+            page = page*16
+            usr = getUser(user=user)
+            if usr == None:
+                err_404['message'] = "user not exists"
+                return Response(err_404)
+            post = Post.objects.filter(creator = usr).order_by("-created_at")
+            serializer = PostSerializer(post[int(page)-16: int], many = True)
+
     
 class MyGallery(APIView):
     def get(self, request, page):
