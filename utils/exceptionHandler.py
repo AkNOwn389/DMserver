@@ -10,7 +10,7 @@ def custom_exception_handler(exc, context):
         'NotAuthenticated':_handle_authentication_error,
         'Unauthorized':_handle_authentication_error,
         'AuthenticationFailed':_handle_invalidated_,
-        'TypeError':_handle_Type__error_,
+        #'TypeError':_handle_Type__error_,
         'InvalidToken': _handle_invalidated_,
         'MethodNotAllowed': _handle_method_error_,
     }

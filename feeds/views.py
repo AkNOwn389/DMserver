@@ -2,7 +2,7 @@ from django.shortcuts import render
 from profiles.serializers import ProfileSerializer
 from profiles.models import Profile
 from users.models import FollowerCount
-from posts.models import Post
+from posts.models import Post, LikePost
 from posts.serializers import PostSerializer
 from time_.get_time import getStringTime
 from rest_framework.views import APIView
@@ -39,6 +39,10 @@ class newsfeed(APIView):
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                    i['is_like'] = True
+                else:
+                    i['is_like'] = False
             if len(y.data) == 16:
                 self.data['hasMorePage'] = True
                 self.data['data'] = y.data

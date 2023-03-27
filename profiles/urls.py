@@ -7,7 +7,6 @@ urlpatterns = [
     path('updatedetails', views.UpdateDetails.as_view(), name='update_details'),
     path('search/<str:user>/page=<int:page>', views.search.as_view(), name='search'),
     path("getavatar/<str:user>", views.avatarView.as_view(), name = "getavatar"),
-    path('profile/<str:user>', views.profile.as_view(), name='profile'),
-    
+    path('user/<str:user>', views.profile.as_view(), name='profile'),
     path('me', views.Me.as_view(), name='me'),
 ]

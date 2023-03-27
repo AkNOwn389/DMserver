@@ -15,8 +15,9 @@ from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
+from notifications.models import MyNotification
 from smtplib import SMTPRecipientsRefused
-import random, uuid, jwt
+import random, uuid
 from django.utils import timezone
 from datetime import datetime
 
@@ -88,21 +89,52 @@ class user_suggested(APIView):
             return JsonResponse({'status': True, 'status_code': 200, 'data': user_profile})
         return JsonResponse({'status': 401,'message': 'user not logged'})
 class Follow(APIView):
+
+    def Notify(self, request, following):
+        name = Profile.objects.get(user = request.user).name
+        if name == "" or name == None:
+            name = request.user.username
+
+        if FollowerCount.objects.filter(follower = following, user = request.user).first():
+            if not MyNotification.objects.filter(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.").first():
+                MyNotification.objects.create(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.", description = str(name)+" followed you", notifType = 1, subject_id = "").save()
+        else:
+            if not MyNotification.objects.filter(user = following, subjectUser = request.user, title = f"{str(name)} followed you.").first():
+                MyNotification.objects.create(user = following, subjectUser = request.user, title = f"{str(name)} followed you.", description = str(name)+" followed you", notifType = 1, subject_id = "").save()
+
+    def deleteNotif(self, request, following):
+        name = Profile.objects.get(user = request.user).name
+        if name == "" or name == None:
+            name = request.user.username
+        try:
+            note = MyNotification.objects.get(user = following, subjectUser = request.user, title = f"{str(name)} followed you.", description = str(name)+" followed you")
+            note.delete()
+        except MyNotification.DoesNotExist:
+            pass
+        try:
+            note = MyNotification.objects.get(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.", description = str(name)+" followed you")
+            note.delete()
+        except MyNotification.DoesNotExist:
+            pass
+        return
+
     def get(self, request, user):
         if request.user.is_authenticated:
             if request.user.username == user:
                 return JsonResponse({"status":False, "status_code": 0, "message": "invalid data"})
             try:
-                following = User.objects.filter(username = user).first()
+                following = User.objects.get(username = user)
             except:
                 return JsonResponse({'status': False, 'status_code':0, 'message': 'user not exists'})
             if FollowerCount.objects.filter(follower=request.user, user=following).first():
                 delete_follower = FollowerCount.objects.get(follower=request.user, user=following)
                 delete_follower.delete()
+                self.deleteNotif(request=request, following=following)
                 return JsonResponse({'status':True,'status_code': 200, 'message': 'unfollowed'})
             else:
                 new_follower = FollowerCount.objects.create(follower=request.user, user=following)
                 new_follower.save()
+                self.Notify(request=request, following=following)
                 return JsonResponse({'status':True, 'status_code': 200, 'message': 'following'})
         return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
 class get_follower(APIView):

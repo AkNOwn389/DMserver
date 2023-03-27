@@ -10,6 +10,7 @@ from profiles.serializers import ProfileSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
+from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from .models import Comment
 
@@ -101,6 +102,19 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': True})
 
 class Like_Post(APIView):
+    def Notify(self, creator_post_id, user):
+        creator = User.objects.get(username = Post.objects.get(id = creator_post_id).creator)
+        if not MyNotification.objects.filter(subject_id = creator_post_id, title = "Like your posts", subjectUser = user).first():
+            MyNotification.objects.create(user = creator, subjectUser = user, subject_id = creator_post_id, title = "Like your posts", description = "", notifType = 2).save()
+        return
+    def deleteNotif(self, creator_post_id, user):
+        creator = User.objects.get(username = Post.objects.get(id = creator_post_id).creator)
+        try:
+            MyNotification.objects.get(user = creator, subjectUser = user, subject_id = creator_post_id, title = "Like your posts", description = "", notifType = 2).delete()
+        except MyNotification.DoesNotExist:
+            pass
+
+        return 
     def post(self, request):
         user = request.user
         if user.is_authenticated:
@@ -113,6 +127,7 @@ class Like_Post(APIView):
                 new_like.save()
                 post.NoOflike = post.NoOflike+1
                 post.save()
+                self.Notify(creator_post_id=post_id, user=request.user)
                 return JsonResponse({
                     'status': True,
                     'message': 'post like',
@@ -121,12 +136,13 @@ class Like_Post(APIView):
                 like_filter.delete()
                 post.NoOflike = post.NoOflike-1
                 post.save()
+                self.deleteNotif(creator_post_id=post_id, user=request.user)
                 return JsonResponse({
                     'status': True,
                     'message': 'post unlike',
                     'post_likes': post.NoOflike})
             
-class get_post_list(APIView):
+class MyPostListView(APIView):
     success = {'status': True,'status_code': 200, 'message': 'beta test'}
     err = {"status":False, "message":"invalid token", "status_code":401}
     def get(self, request, page):
@@ -141,6 +157,11 @@ class get_post_list(APIView):
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                    i['is_like'] = True
+                else:
+                    i['is_like'] = False
+            print(serializer.data)
             self.success['data'] = serializer.data
             return JsonResponse(self.success)
         return JsonResponse(self.err)
@@ -148,15 +169,17 @@ def getUser(user):
     try:
         a = User.objects.get(id = user)
         return a
-    except User.DoesNotExist:
+    except:
         pass
     try:
         a = User.objects.get(username = user)
-    except User.DoesNotExist:
+        return a
+    except:
         pass
     try:
         a = User.objects.get(email = user)
-    except User.DoesNotExist:
+        return a
+    except:
         pass
 
     return None
@@ -164,13 +187,32 @@ def getUser(user):
 class PostView(APIView):
     def get(self, request, user, page):
         if request.user.is_authenticated:
+            me = ProfileSerializer(Profile.objects.get(user = request.user))
             page = page*16
             usr = getUser(user=user)
             if usr == None:
                 err_404['message'] = "user not exists"
                 return Response(err_404)
             post = Post.objects.filter(creator = usr).order_by("-created_at")
-            serializer = PostSerializer(post[int(page)-16: int], many = True)
+
+            serializer = PostSerializer(post[int(page)-16: int(page)], many = True)
+            for i in serializer.data:
+                i['creator_avatar'] = getAvatarByUsername(i['creator'])
+                i['your_avatar'] = me.data['profileimg']
+                i['dateCreated'] = i['created_at']
+                i['created_at'] = getStringTime(i['created_at'])
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                    i['is_like'] = True
+                else:
+                    i['is_like'] = False
+            success['message'] = "success"
+            success['data'] = serializer.data
+            return Response(success)
+
+        err_401['message'] = "invalid user"
+        return Response(err_401)
+    err_404['message'] = "method not allowed"
+    Response(err_404)
 
     
 class MyGallery(APIView):
@@ -197,6 +239,18 @@ class CommentView(APIView):
     success = {'status': True, 'status_code': 200, 'message': 'success'}
     error_validation = {'status': False, 'status_code': 200, 'message': 'validation error'}
     err_not_exists = {'status': False, 'status_code': 200, 'message': 'post doest not exists'}
+
+    def Notify(self, post_id, request):
+        name = Profile.objects.get(user = request.user).name
+        if name == "" or name == None:
+            name = request.user.username
+        creator = User.objects.get(username = Post.objects.get(id = post_id).creator)
+        if creator == request.user:
+            return
+        MyNotification.objects.create(user = creator, subjectUser = request.user, subject_id = post_id, title = f"{name} commented on your posts", description = "", notifType = 3).save()
+        return
+
+
     def post(self, request):
         if request.user.is_authenticated:
             user = request.user
@@ -212,6 +266,7 @@ class CommentView(APIView):
             a.save()
             post.NoOfcomment = post.NoOfcomment+1
             post.save()
+            self.Notify(post_id=post_id, request=request)
             return JsonResponse(self.success)
 
         return JsonResponse(self.error_validation)
