@@ -15,12 +15,31 @@ from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
-from notifications.models import MyNotification
+from notifications.views import FollowNotificationView
 from smtplib import SMTPRecipientsRefused
 import random, uuid
 from django.utils import timezone
 from datetime import datetime
 
+
+success = {"status": True, "status_code": 200}
+err_400 = {"status": False, "status_code": 400}
+err_401 = {"status": False, "status_code": 401}
+err_402 = {"status": False, "status_code": 402}
+err_403 = {"status": False, "status_code": 403}
+err_404 = {"status": False, "status_code": 404}
+err_405 = {"status": False, "status_code": 405}
+err_406 = {"status": False, "status_code": 406}
+err_407 = {"status": False, "status_code": 407}
+err_408 = {"status": False, "status_code": 408}
+err_409 = {"status": False, "status_code": 409}
+err_410 = {"status": False, "status_code": 410}
+err_411 = {"status": False, "status_code": 411}
+err_412 = {"status": False, "status_code": 412}
+err_413 = {"status": False, "status_code": 413}
+err_414 = {"status": False, "status_code": 414}
+err_415 = {"status": False, "status_code": 415}
+err_416 = {"status": False, "status_code": 416}
 # Create your views here.
 def isFollowed(me, username):
     try:
@@ -84,40 +103,11 @@ class user_suggested(APIView):
             for i in user_profile:
                 del i['bgimg']
                 del i['bio']
-                i['Followed'] = isFollowed(request.user, i['user'])
+                i['Following'] = isFollowed(request.user, i['user'])
                 i['Follower'] = isFollower(request.user, i['user'])
-            return JsonResponse({'status': True, 'status_code': 200, 'data': user_profile})
+            return JsonResponse({'status': True, 'status_code': 200, 'message': 'user list retrive', 'data': user_profile})
         return JsonResponse({'status': 401,'message': 'user not logged'})
 class Follow(APIView):
-
-    def Notify(self, request, following):
-        name = Profile.objects.get(user = request.user).name
-        if name == "" or name == None:
-            name = request.user.username
-
-        if FollowerCount.objects.filter(follower = following, user = request.user).first():
-            if not MyNotification.objects.filter(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.").first():
-                MyNotification.objects.create(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.", description = str(name)+" followed you", notifType = 1, subject_id = "").save()
-        else:
-            if not MyNotification.objects.filter(user = following, subjectUser = request.user, title = f"{str(name)} followed you.").first():
-                MyNotification.objects.create(user = following, subjectUser = request.user, title = f"{str(name)} followed you.", description = str(name)+" followed you", notifType = 1, subject_id = "").save()
-
-    def deleteNotif(self, request, following):
-        name = Profile.objects.get(user = request.user).name
-        if name == "" or name == None:
-            name = request.user.username
-        try:
-            note = MyNotification.objects.get(user = following, subjectUser = request.user, title = f"{str(name)} followed you.", description = str(name)+" followed you")
-            note.delete()
-        except MyNotification.DoesNotExist:
-            pass
-        try:
-            note = MyNotification.objects.get(user = following, subjectUser = request.user, title = f"{str(name)} and you are now friends.", description = str(name)+" followed you")
-            note.delete()
-        except MyNotification.DoesNotExist:
-            pass
-        return
-
     def get(self, request, user):
         if request.user.is_authenticated:
             if request.user.username == user:
@@ -129,12 +119,12 @@ class Follow(APIView):
             if FollowerCount.objects.filter(follower=request.user, user=following).first():
                 delete_follower = FollowerCount.objects.get(follower=request.user, user=following)
                 delete_follower.delete()
-                self.deleteNotif(request=request, following=following)
+                FollowNotificationView.deleteNotif(request=request, following=following)
                 return JsonResponse({'status':True,'status_code': 200, 'message': 'unfollowed'})
             else:
                 new_follower = FollowerCount.objects.create(follower=request.user, user=following)
                 new_follower.save()
-                self.Notify(request=request, following=following)
+                FollowNotificationView.Notify(request=request, following=following)
                 return JsonResponse({'status':True, 'status_code': 200, 'message': 'following'})
         return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
 class get_follower(APIView):
@@ -153,11 +143,21 @@ class get_follower(APIView):
                 for i in serializer.data:
                     del i['bio']
                     del i['bgimg']
-                    i['Followed'] = isFollowed(request.user, i['user'])
+                    i['Following'] = isFollowed(request.user, i['user'])
                     i['Follower'] = isFollower(request.user, i['user'])
-                return JsonResponse({'status': True, 'status_code': 200, 'message': 'beta test', 'data': serializer.data})
-            return JsonResponse({'status': True, 'status_code': 200, 'message': 'you have no followers at this time.', 'data': []})
-        return JsonResponse({"status": False,"status_code":401,"message":"invalid user"})
+
+
+                success['hasMorePage'] = True if len(serializer.data) == 16 else False
+                success['message'] = 'success'
+                success['data'] = serializer.data
+                return JsonResponse(success)
+            
+            success['message'] = 'you have no followers at this time.'
+            success['data'] = []
+            return JsonResponse(success)
+        
+        err_401['message'] = "invalid cridential"
+        return JsonResponse(err_401)
     
 class get_following_list(APIView):
     def get(self, request, page):
@@ -177,9 +177,18 @@ class get_following_list(APIView):
                     del i['bgimg']
                     i['Followed'] = isFollowed(request.user, i['user'])
                     i['Follower'] = isFollower(request.user, i['user'])
-                return JsonResponse({'status': True, 'status_code': 200, 'message': 'success', 'data': serializer.data})
-            return JsonResponse({'status': True, 'status_code': 200, 'message': 'you have no followed at this time.', 'data': []})
-        return JsonResponse({"status": False,"status_code":401,"message":"invalid user"})
+                success['hasMorePage'] = True if len(serializer.data) == 16 else False
+                success['message'] = 'success'
+                success['data'] = serializer.data
+                return JsonResponse(success)
+            
+            success['message'] = 'you have no followed at this time.'
+            success['data'] = []
+            return JsonResponse(success)
+            
+        err_401['message'] = "invalid cridential"
+        return JsonResponse(err_401)
+    
 class get_friend(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:
@@ -202,10 +211,21 @@ class get_friend(APIView):
                 for i in serializer.data:
                     del i['bio']
                     del i['bgimg']
-                return JsonResponse({"status": True, 'status_code': 200, "message": "success", "data": serializer.data})
+                    i['Followed'] = isFollowed(request.user, i['user'])
+                    i['Follower'] = isFollower(request.user, i['user'])
 
-            return JsonResponse({"status": True, 'status_code': 200, 'message': 'you have no friends at time.', 'data': []})
-        return JsonResponse({"status": False,"status_code":401,"message":"invalid user"})
+                success['hasMorePage'] = True if len(serializer.data) == 16 else False
+                success['message'] = 'success'
+                success['data'] = serializer.data
+                return JsonResponse(success)
+
+
+            success['message'] = 'you have no friends at time.'
+            success['data'] = []
+            return JsonResponse(success)
+            
+        err_401['message'] = "invalid cridential"
+        return JsonResponse(err_401)
 
 class logout(APIView):
     def post(self, request):

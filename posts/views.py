@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from django.http import JsonResponse
 from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
+from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Comment
 
 # Create your views here.
@@ -102,19 +103,6 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': True})
 
 class Like_Post(APIView):
-    def Notify(self, creator_post_id, user):
-        creator = User.objects.get(username = Post.objects.get(id = creator_post_id).creator)
-        if not MyNotification.objects.filter(subject_id = creator_post_id, title = "Like your posts", subjectUser = user).first():
-            MyNotification.objects.create(user = creator, subjectUser = user, subject_id = creator_post_id, title = "Like your posts", description = "", notifType = 2).save()
-        return
-    def deleteNotif(self, creator_post_id, user):
-        creator = User.objects.get(username = Post.objects.get(id = creator_post_id).creator)
-        try:
-            MyNotification.objects.get(user = creator, subjectUser = user, subject_id = creator_post_id, title = "Like your posts", description = "", notifType = 2).delete()
-        except MyNotification.DoesNotExist:
-            pass
-
-        return 
     def post(self, request):
         user = request.user
         if user.is_authenticated:
@@ -127,7 +115,7 @@ class Like_Post(APIView):
                 new_like.save()
                 post.NoOflike = post.NoOflike+1
                 post.save()
-                self.Notify(creator_post_id=post_id, user=request.user)
+                LikeNotificationView.saveLike(ako=request.user, postId=post_id)
                 return JsonResponse({
                     'status': True,
                     'message': 'post like',
@@ -136,7 +124,7 @@ class Like_Post(APIView):
                 like_filter.delete()
                 post.NoOflike = post.NoOflike-1
                 post.save()
-                self.deleteNotif(creator_post_id=post_id, user=request.user)
+                LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
                 return JsonResponse({
                     'status': True,
                     'message': 'post unlike',
@@ -161,7 +149,12 @@ class MyPostListView(APIView):
                     i['is_like'] = True
                 else:
                     i['is_like'] = False
-            print(serializer.data)
+            
+            if len(serializer.data) == 16:
+                hasMorePage = True
+            else:
+                hasMorePage = False
+            self.success['hasMorePage'] = hasMorePage
             self.success['data'] = serializer.data
             return JsonResponse(self.success)
         return JsonResponse(self.err)
@@ -240,17 +233,6 @@ class CommentView(APIView):
     error_validation = {'status': False, 'status_code': 200, 'message': 'validation error'}
     err_not_exists = {'status': False, 'status_code': 200, 'message': 'post doest not exists'}
 
-    def Notify(self, post_id, request):
-        name = Profile.objects.get(user = request.user).name
-        if name == "" or name == None:
-            name = request.user.username
-        creator = User.objects.get(username = Post.objects.get(id = post_id).creator)
-        if creator == request.user:
-            return
-        MyNotification.objects.create(user = creator, subjectUser = request.user, subject_id = post_id, title = f"{name} commented on your posts", description = "", notifType = 3).save()
-        return
-
-
     def post(self, request):
         if request.user.is_authenticated:
             user = request.user
@@ -266,7 +248,7 @@ class CommentView(APIView):
             a.save()
             post.NoOfcomment = post.NoOfcomment+1
             post.save()
-            self.Notify(post_id=post_id, request=request)
+            CommentNotificationView.Notify(post_id=post_id, request=request)
             return JsonResponse(self.success)
 
         return JsonResponse(self.error_validation)

@@ -91,6 +91,8 @@ class profile(APIView):
             data['followers'] = user_followers
             data['following'] = user_following
             data['post_lenght'] = len(mypost)
+            data['isFollowing'] = True if FollowerCount.objects.filter(user = mydata, follower = request.user).first() else False
+            data['isFollower'] = True if FollowerCount.objects.filter(follower = mydata, user = request.user).first() else False
             return JsonResponse({'status_code': 200,'status': True,'message': 'success','data': data})
         return JsonResponse({'status': 401,'message': 'user not logged'})
 
