@@ -6,6 +6,7 @@ from profiles.models import  Profile
 from users.models import FollowerCount
 from profiles.views import getAvatarByUsername
 from time_.get_time import getStringTime
+from users.views import isFollowed, isFollower
 from profiles.serializers import ProfileSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -227,12 +228,26 @@ class MyGallery(APIView):
                              "message":"invalid token",
                              "status_code":401,
                              "data": []})
-    
-class CommentView(APIView):
-    success = {'status': True, 'status_code': 200, 'message': 'success'}
-    error_validation = {'status': False, 'status_code': 200, 'message': 'validation error'}
-    err_not_exists = {'status': False, 'status_code': 200, 'message': 'post doest not exists'}
+class DeleteCommentView(APIView):
+    def get(self, request, id, postId):
+        if request.user.is_authenticated:
+            try:
+                comment = Comment.objects.get(id = id, user = request.user)
+                post = Post.objects.get(id = postId)
+            except Comment.DoesNotExist:
+                err_404['message'] = "invalid data"
+                return Response(err_404)
+            comment.delete()
+            post.NoOfcomment = post.NoOfcomment-1
+            print(post.NoOfcomment)
+            post.save()
+            success['message'] = 'comment deleted'
+            return Response(success)
+        err_401['message'] = 'invalid user'
+        return Response(err_401)
 
+
+class CommentView(APIView):
     def post(self, request):
         if request.user.is_authenticated:
             user = request.user
@@ -242,13 +257,48 @@ class CommentView(APIView):
             try:
                 post = Post.objects.get(id = post_id)
             except Post.DoesNotExist:
-                return JsonResponse(self.err_not_exists)
-
-            a = Comment.objects.create(post_id = post_id, avatar = user_profile.profileimg, comments = comment, user = user)
-            a.save()
-            post.NoOfcomment = post.NoOfcomment+1
-            post.save()
-            CommentNotificationView.Notify(post_id=post_id, request=request)
-            return JsonResponse(self.success)
-
-        return JsonResponse(self.error_validation)
+                err_404['message'] = "post doest not exists"
+                return JsonResponse(err_404)
+            try:
+                a = Comment.objects.create(post_id = post_id, avatar = user_profile.profileimg, comments = comment, user = user, type = 1)
+                a.save()
+                post.NoOfcomment = post.NoOfcomment+1
+                post.save()
+                CommentNotificationView.Notify(post_id=post_id, request=request)
+                serializer = PostCommentSerializer(a)
+                success['message'] = 'success'
+                success['data'] = serializer.data
+                success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = serializer.data['user'])).name
+                success['data']['Followed'] = isFollowed(request.user, serializer.data['user'])
+                success['data']['Follower'] = isFollower(request.user, serializer.data['user'])
+                success['data']['created'] = getStringTime(serializer.data['created'])
+                success['data']['me'] = True
+                return JsonResponse(success)
+            except:
+                err_403['message'] = 'system failure'
+                return Response(err_403)
+            
+        err_401['message'] = 'invalid user'
+        return JsonResponse(err_401)
+    def get(self, request, id, page):
+        if request.user.is_authenticated:
+            page = page*16
+            comment = Comment.objects.filter(post_id = id).order_by("-created")
+            if len(comment) == 0:
+                success['message'] = 'success'
+                success['data'] = []
+                return Response(success)
+            serialiser = PostCommentSerializer(comment[int(page)-16:int(page)], many = True)
+            for i in serialiser.data:
+                i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['user'])).name
+                i['Followed'] = isFollowed(request.user, i['user'])
+                i['Follower'] = isFollower(request.user, i['user'])
+                i['created'] = getStringTime(i['created'])
+                i['me'] = True if i['user'] == request.user.username else False
+            success['message'] = 'success'
+            success['hasMorePage'] = True if len(serialiser.data) == 16 else False
+            success['data'] = serialiser.data
+            return Response(success)
+        
+        err_401['message'] = 'invalid user'
+        return Response(err_401)

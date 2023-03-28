@@ -60,6 +60,8 @@ class Comment(models.Model):
     post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    image = models.ImageField(blank=True)
+    type = models.IntegerField(blank=False, default=1)
     comments = models.TextField(max_length=1500)
     created = models.DateTimeField(auto_now_add=True)
 

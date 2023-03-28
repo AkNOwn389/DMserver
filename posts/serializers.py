@@ -32,6 +32,10 @@ class LikesPostSerializer(serializers.ModelSerializer):
     fields = ['post_id', 'username']
 
 class PostCommentSerializer(serializers.ModelSerializer):
+  user = serializers.SlugRelatedField(
+    read_only = True,
+    slug_field = "username"
+  )
   class Meta:
     model = Comment
-    fields = ['post_id', 'avatar', 'user', 'comments', 'created']
+    fields = ['id', 'post_id', 'image', 'avatar', 'user', 'comments', 'created', 'type']
