@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from .serializers import ProfileSerializer
 from django.http import JsonResponse
+from django.db.models import Q
 
 # Create your views here.
 def getAvatarByUsername(username):
@@ -13,50 +14,44 @@ def getAvatarByUsername(username):
     b = Profile.objects.get(user = a)
     c = ProfileSerializer(b)
     return c.data['profileimg']
+def getUserDataByUser(username):
+    try:
+        a = User.objects.get(username = username)
+        b = Profile.objects.get(user = a)
+    except User.DoesNotExist:
+        return None
+    except Profile.DoesNotExist:
+        return None
+    c = UserSerializer(a)
+    e = ProfileSerializer(b)
+    f = {**c.data, **e.data}
+    return f
+
+    
+
+
 class search(APIView):
     def finder(self, user):
-        x = User.objects.filter(username__contains = user)
-        if len(x) == 0:
-            x = User.objects.filter(first_name__contains = user)
-            if len(x) == 0:
-                x = User.objects.filter(last_name__contains = user)
-                if len(x) == 0:
-                    x = User.objects.filter(email__contains = user)
-                    if len(x) == 0:
-                        return x
-                    else:
-                        return x
-                else:
-                    return x
-            else:
-                return x
-        else:
-            return x
+        data = User.objects.filter(Q(username__contains = user) | Q(first_name__contains = user) | Q(last_name__contains = user) | Q(email__contains = user))
+        return data
     def get(self, request, user, page):
         if request.user.is_authenticated:
             page = page*16
             object = self.finder(user=user)
             data = []
-            if len(object) != 0:
+            if len(object) is not 0:
+                data = []
                 for ids in object:
-                    profile_lists = Profile.objects.get(user_id=ids.id)
-                    data.append(profile_lists)
-                u = []
-                v = []
-                for i in range(len(data)):
-                    x = UserSerializer(object[i])
-                    z = ProfileSerializer(data[i])
-                    u.append(x.data)
-                    v.append(z.data)
-                w = []
-                for i in range(len(v)):
-                    d = {**u[i], **v[i]}
-                    w.append(d)
-                if len(w) <= 16:
-                    hasMorePage = False
-                else:
+                    if ids == request.user:
+                        continue
+                    usr = getUserDataByUser(ids)
+                    if usr is not None:
+                        data.append(usr)
+                if len(data) == 16:
                     hasMorePage = True
-                return JsonResponse({'status': True, 'status_code': 200, 'message': 'User List Retreave', 'hasMorePage': hasMorePage, 'data': w[page-16:page]})
+                else:
+                    hasMorePage = False
+                return JsonResponse({'status': True, 'status_code': 200, 'message': 'User List Retreave', 'hasMorePage': hasMorePage, 'data': data[page-16:page]})
             return JsonResponse({'status': False, 'status_code': 200, 'message': 'User List Retreave', 'data': []})
         return JsonResponse({'status': 401,'message': 'user not logged'})
 class Me(APIView):

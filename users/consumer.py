@@ -8,7 +8,7 @@ import json
 
 		
 class LoginSocket(AsyncWebsocketConsumer):
-    def deleteOnlineUser(user):
+    def deleteOnlineUser(self, user):
             try:
                 OnlineUser.objects.get(user=user).delete()
             except:

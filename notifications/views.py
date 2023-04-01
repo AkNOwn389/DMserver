@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from .models import MyNotification
 from rest_framework.response import Response
 from .serializers import NotificationSerializer
+from profiles.serializers import ProfileSerializer
 from posts.models import Post
 from profiles.models import Profile
 from chats.models import message
@@ -49,17 +50,17 @@ class Seen(APIView):
     def get(self, request, id):
         if request.user.is_authenticated:
             try:
-                notif = MyNotification.objects.get(user = request.user, subject_id = id)
+                notif = MyNotification.objects.get(user = request.user, id = id)
                 notif.seen = True
                 notif.save()
-                success['message'] = 'success'
-                Response(success)
+                success['message'] = "success"
+                return Response(success)
             except MyNotification.DoesNotExist:
                 err_404['message'] = "doest not exists"
-                Response(err_404)
+                return Response(err_404)
 
         err_401['message'] = 'invalid cridential'
-        Response(err_401)
+        return Response(err_401)
 
 class NotificationBadgeView(APIView):
     def get(self, request):
@@ -85,13 +86,18 @@ class MyNotificationView(APIView):
     def get(self, request, page):
         page = page*16
         if request.user.is_authenticated:
-            notifications = MyNotification.objects.filter(user = request.user, seen = False).order_by("-date")
+            notifications = MyNotification.objects.filter(Q(user = request.user, seen = False) | Q(user = request.user, seen = True)).order_by("seen")
             if notifications is None:
                 success['data'] = []
                 return Response(success)
             serializer = NotificationSerializer(notifications[int(page)-16:int(page)], many = True)
             for i in serializer.data:
+                try:
+                    i['subjectImage'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['profileimg']
+                except:
+                    pass
                 del i['subjectUser']
+                
             if len(serializer.data) == 16:
                 hasMorePage = True
             else:
@@ -189,7 +195,9 @@ class FollowNotificationView:
                 notif.save()
         else:
             if not MyNotification.objects.filter(user = following, subjectUser__pk = request.user.id, title = f"{str(name)} followed you.").first():
-                MyNotification.objects.create(user = following, subjectUser = request.user, title = f"{str(name)} followed you.", description = str(name)+" followed you", notifType = 1, subject_id = request.user.username).save()
+                notif = MyNotification.objects.create(user = following, title = f"{str(name)} followed you.", description = str(name)+" followed you", notifType = 1, subject_id = request.user.username)
+                notif.subjectUser.add(request.user)
+                notif.save()
 
     def deleteNotif(request, following):
         name = Profile.objects.get(user = request.user).name

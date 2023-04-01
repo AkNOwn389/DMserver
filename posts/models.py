@@ -23,17 +23,21 @@ def post_videos_rdm_name(a, b):
             return f
 class Image(models.Model):
     image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image")
+    noOfLike = models.IntegerField(default=0)
+    noOfComment = models.IntegerField(default=0)
     class Meta:
-        ordering = ['image']
+        ordering = ['image', 'noOfLike', 'noOfComment']
     def __str__(self):
-        return self.image
+        return str(self.noOfLike)
 
 class Videos(models.Model):
-    videos = models.ImageField(upload_to=post_videos_rdm_name)
+    videos = models.FileField(upload_to=post_videos_rdm_name)
+    noOfLike = models.IntegerField(default=0)
+    noOfComment = models.IntegerField(default=0)
     class Meta:
-        ordering = ['videos']
+        ordering = ['videos', 'noOfLike', 'noOfComment']
     def __str__(self):
-        return self.videos
+        return str(self.noOfLike)
     
 class Post(models.Model):
     id = models.UUIDField(primary_key = True, default=uuid.uuid4)
@@ -51,10 +55,10 @@ class Post(models.Model):
     NoOfcomment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
     class Meta:
-        ordering = ("-created_at",)
+        ordering = ["-created_at",]
         
     def __str__(self):
-        return str(self.creator)+" "+self.description
+        return str(self.creator)+" "+str(self.description)
 
 class Comment(models.Model):
     post_id = models.UUIDField(primary_key=False)

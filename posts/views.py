@@ -35,6 +35,21 @@ err_413 = {"status": False, "status_code": 413}
 err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
+class GetPostDataById(APIView):
+    def get(self, request, postId):
+        if request.user.is_authenticated:
+            try:
+                post = Post.objects.get(id = postId)
+            except Post.DoesNotExist:
+                err_404['message'] = 'doests not exits'
+                return Response(err_404)
+            serialiser = PostSerializer(post)
+            success['message'] = "success"
+            success['data'] = serialiser.data
+            success['data']['creator_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = serialiser.data['creator']))).data['profileimg']
+            success['data']['your_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = request.user.username))).data['profileimg']
+            success['data']['is_like'] = True if LikePost.objects.filter(post_id=serialiser.data['id'], username=request.user).first() else False
+            return Response(success)
 
 class upload(APIView):
     def post(self, request):

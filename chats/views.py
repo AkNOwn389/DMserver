@@ -11,9 +11,24 @@ from django.db.models import Q
 
 # Create your views here.
 data = {'status': True, 'status_code': 200, 'message': 'success'}
-err404 = {'status': False, 'status_code': 404, 'message': 'error not found'}
-err401 = {'status': False, 'status_code': 401, 'message': 'invalid user'}
-errInput = {'status': False, 'status_code': 401, 'message': 'invalid data'}
+success = {"status": True, "status_code": 200}
+err_400 = {"status": False, "status_code": 400}
+err_401 = {"status": False, "status_code": 401}
+err_402 = {"status": False, "status_code": 402}
+err_403 = {"status": False, "status_code": 403}
+err_404 = {"status": False, "status_code": 404}
+err_405 = {"status": False, "status_code": 405}
+err_406 = {"status": False, "status_code": 406}
+err_407 = {"status": False, "status_code": 407}
+err_408 = {"status": False, "status_code": 408}
+err_409 = {"status": False, "status_code": 409}
+err_410 = {"status": False, "status_code": 410}
+err_411 = {"status": False, "status_code": 411}
+err_412 = {"status": False, "status_code": 412}
+err_413 = {"status": False, "status_code": 413}
+err_414 = {"status": False, "status_code": 414}
+err_415 = {"status": False, "status_code": 415}
+err_416 = {"status": False, "status_code": 416}
 
 
 class MessagePageView(APIView):
@@ -22,20 +37,14 @@ class MessagePageView(APIView):
             limit = page*16
             messages = message.objects.filter(Q(sender = request.user) | Q(receiver = request.user)).order_by("-date_time")
             msg_lists = []
+            msg = []
             for x in messages:
-                if len(msg_lists) == 0:
+                y = x.sender if x.receiver == request.user else x.receiver
+                if y not in msg:
+                    msg.append(y)
                     msg_lists.append(x)
-                else:
-                    already  = False
-                    for y in msg_lists:
-                        if y.id == x.id:
-                            already = True
-                        else:
-                            pass
 
-                    if already == True:
-                        msg_lists.append(x)
-            
+
             c = MessagesSerialiser(msg_lists[int(limit)-16:int(limit)], many=True)
             for i in c.data:
                 i['username'] = i['receiver'] if i['sender'] == request.user.username else i['sender']
@@ -43,6 +52,8 @@ class MessagePageView(APIView):
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
                 i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
+                i['message_lenght'] = len(message.objects.filter(sender = User.objects.get(username = i['username']), receiver = request.user))
+                i['type'] = 1
                 if i['sender'] == request.user.username:
                     i['message_body'] = f"You: {i['message_body']}"
             has_more_page = False
@@ -53,7 +64,7 @@ class MessagePageView(APIView):
             data['data'] = c.data
             return JsonResponse(data)
         
-        return JsonResponse(err401)
+        return JsonResponse(err_401)
         
     def post(self, request, page):
         pass
@@ -66,7 +77,8 @@ class GetMessageView(APIView):
             try:
                 pk = User.objects.get(username = pk)
             except User.DoesNotExist:
-                return Response(err404)
+                err_404['message'] = 'not found'
+                return Response(err_404)
             
             messages = message.objects.filter(Q(sender = request.user, receiver = pk) | Q(sender = pk, receiver = request.user)).order_by("-date_time")
             c = MessagesSerialiser(messages[int(page)-16: int(page)], many = True)
@@ -75,8 +87,9 @@ class GetMessageView(APIView):
                 i['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = i['sender'])).name
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
-                i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
+                i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['sender']))).data['profileimg']
                 i['type'] = 2 if i['receiver'] == request.user.username else 1
+                i['me'] = True if i['sender'] == request.user.username else False
 
             if len(c.data) == 16:
                 has_more_page = True
@@ -85,7 +98,7 @@ class GetMessageView(APIView):
             data['hasMorePage'] = has_more_page
             data['data'] = c.data
             return Response(data)
-        return Response(err401)
+        return Response(err_401)
 
 
 class sendmessage(APIView):
@@ -101,8 +114,10 @@ class sendmessage(APIView):
         self.success['data']['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = msg.data['sender'])).name
         self.success['data']['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = msg.data['receiver'])).name
         self.success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = username)).name
-        self.success['data']['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = username))).data['profileimg']
+        self.success['data']['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = msg.data['sender']))).data['profileimg']
         self.success['data']['type'] = 2 if username == request.user.username else 1
+        self.success['data']['me'] = True
+
         return Response(self.success)
     
     def post(self, request):
@@ -113,7 +128,8 @@ class sendmessage(APIView):
                 if receiver_model == sender_model:
                     return Response(self.self_err)
             except User.DoesNotExist:
-                return Response(self.err404)
+                err_404['message'] = 'not found'
+                return Response(err_404)
   
             data={
                 'sender': sender_model.id,
@@ -124,7 +140,9 @@ class sendmessage(APIView):
             if serializers.is_valid(raise_exception=True):
                 serializers.save()
                 return self.RETURN(serializers.data['id'], request)
-            return Response(errInput)
+            
+            err_404['message'] = 'not found'
+            return Response(err_404)
         
         return Response(self.error400)
 
@@ -148,11 +166,53 @@ class Notify(APIView):
                 msg['user_full_name'] = Profile.objects.get(user = User.objects.get(username = username)).name
                 msg['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = username))).data['profileimg']
                 msg['type'] = 2 if username == request.user.username else 1
+                msg['me'] = False
             self.success['length'] = len(serialiser.data)
             self.success['data'] = serialiser.data
             return Response(self.success)
         return Response(self.error400)
     
+class ChatListener(APIView):
+    def get(self, request, user):
+        if request.user.is_authenticated:
+            try:
+                user = User.objects.get(username = user)
+            except User.DoesNotExist:
+                err_404['message'] = 'user not found'
+                return Response(err_404)
+            messages = message.objects.filter(sender = user, receiver = request.user, seen = False).order_by("date_time")
+            if len(messages) == 0:
+                success['message'] = "none"
+                success['data'] = []
+                return JsonResponse(success)
+            serializer = MessagesSerialiser(messages, many = True)
+            for msg in serializer.data:
+                username = msg['receiver'] if msg['sender'] == request.user.username else msg['sender']
+                msg['username'] = username
+                msg['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = msg['sender'])).name
+                msg['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = msg['receiver'])).name
+                msg['user_full_name'] = Profile.objects.get(user = User.objects.get(username = username)).name
+                msg['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = username))).data['profileimg']
+                msg['type'] = 1 if username == request.user.username else 2
+                msg['me'] = False
+            success['hasMorePage'] = False
+            success['message'] = 'success'
+            success['data'] = serializer.data
+            return Response(success)
+
+class DeleleMessage(APIView):
+    def get(self, request, id):
+        if request.user.is_authenticated:
+            try:
+                message.objects.get(sender = request.user, id = id).delete()
+            except message.DoesNotExist:
+                err_404['message'] = "Not Found"
+                return Response(err_404)
+            success['message'] = "message deleted"
+            return Response(success)
+        err_401['message'] = "invalid user"
+        return Response(err_401)
+
 class MessageBadge(APIView):
     error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
     err = {'status': False, 'status_code': 401,'message': 'invalid user'}
@@ -164,20 +224,19 @@ class MessageBadge(APIView):
         Response(self.error400)
 
 class Seen(APIView):
-    err404 = {'status': False, 'status_code': 401,'message': 'message not exists'}
-    error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
-    def get(self, request, message_id):
+    err404 = {'status': False, 'status_code': 404,'message': 'message not exists'}
+    error401 = {'status': False, 'status_code': 401,'message': 'Invalid user'}
+    def get(self, request, id):
         if request.user.is_authenticated:
             try:
-                msg = message.objects.get(id = message_id)
+                msg = message.objects.get(id = id, receiver = request.user)
             except message.DoesNotExist:
                 return Response(self.err404)
-            
             msg.seen = True
             msg.save()
             return Response({"status": True, "status_code": 200, "message": "message seen"})
         
-        return Response(self.error400)
+        return Response(self.error401)
 
 
 

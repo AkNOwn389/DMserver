@@ -1,10 +1,15 @@
 from rest_framework import serializers
-from .models import Image, Post, LikePost, Comment
+from .models import Image, Videos,  Post, LikePost, Comment
 
 class ImagesSerializer(serializers.ModelSerializer):
   class Meta:
     model = Image
-    fields = ['image']
+    fields = ['id', 'image', 'noOfComment', 'noOfLike']
+
+class VideoSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Videos
+    fields = ['id', 'video', 'noOfComment', 'noOfLike']
 
 class PostUploader(serializers.ModelSerializer):
   class Meta:
@@ -18,7 +23,8 @@ class PostSerializer(serializers.ModelSerializer):
         )
   class Meta:
     model = Post
-    fields = ['id','creator', 'creator_full_name', 'title', 'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type']
+    fields = ['id','creator', 'creator_full_name', 'title', 'perma_link',  'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type', 'status']
+
 
   def to_representation(self, instance):
         rep = super().to_representation(instance)

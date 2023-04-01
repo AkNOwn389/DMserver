@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     #'channels',
-    #'daphne',
+    'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -59,7 +59,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,8 +93,8 @@ CHANNEL_LAYERS ={
     'default': {
     "BACKEND": "channels.layers.InMemoryChannelLayer",
     #"CONFIG": {
-        #"hosts": [('127.0.0.1', 6379)]
-        #}
+       # "hosts": [('0.0.0.0', 8000)]
+       # }
     }
 }
 # Database

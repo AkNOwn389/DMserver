@@ -10,5 +10,6 @@ urlpatterns = [
     path('postlist/page=<int:page>', views.MyPostListView.as_view(), name='postlist'),
     path('mygallery/page=<int:page>', views.MyGallery.as_view(), name='postlist'),
     path('postview/<str:user>/page=<int:page>', views.PostView.as_view(), name="postview"),
+    path('getpost/id=<str:postId>', views.GetPostDataById.as_view(), name="getpostdata"),
     path('delete_comment/commentId=<int:id>/postId=<str:postId>', views.DeleteCommentView.as_view(), name='deleteComent')
 ]

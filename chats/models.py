@@ -26,5 +26,5 @@ class message(models.Model):
     seen = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.date_time
+        return str(self.sender)+" "+str(self.receiver)
     
