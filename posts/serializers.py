@@ -4,17 +4,17 @@ from .models import Image, Videos,  Post, LikePost, Comment
 class ImagesSerializer(serializers.ModelSerializer):
   class Meta:
     model = Image
-    fields = ['id', 'image', 'noOfComment', 'noOfLike']
+    fields = ['id', 'image', 'NoOfcomment', 'NoOflike']
 
 class VideoSerializer(serializers.ModelSerializer):
   class Meta:
     model = Videos
-    fields = ['id', 'video', 'noOfComment', 'noOfLike']
+    fields = ['id', 'video', 'NoOfcomment', 'NoOflike']
 
 class PostUploader(serializers.ModelSerializer):
   class Meta:
     model = Post
-    fields = ['id','creator', 'creator_full_name', 'videos_url', 'images_url', 'title', 'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type']
+    fields = ['id','creator', 'creator_full_name', 'videos_url', 'images_url', 'title', 'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type', 'privacy']
 
 class PostSerializer(serializers.ModelSerializer):
   creator = serializers.SlugRelatedField(
@@ -23,7 +23,7 @@ class PostSerializer(serializers.ModelSerializer):
         )
   class Meta:
     model = Post
-    fields = ['id','creator', 'creator_full_name', 'title', 'perma_link',  'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type', 'status']
+    fields = ['id','creator', 'creator_full_name', 'title', 'perma_link',  'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type', 'status', 'privacy']
 
 
   def to_representation(self, instance):

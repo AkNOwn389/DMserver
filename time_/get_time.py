@@ -52,7 +52,6 @@ def getStringTime(time):
     time_ = date_time[1].split(':')
     if date_ == str(date.today()):
         if time_[0] == str(timeNow).split(":")[0]:
-            print(str(timeNow).split(":")[1])
             if int(str(timeNow).split(":")[1]) -int(time_[1]) < 10:
                 return "Just Now {}m".format(str(int(time_[1])-int(str(timeNow).split(":")[1]))).replace("-", '')
             elif int(str(timeNow).split(":")[1]) -int(time_[1]) < 30:

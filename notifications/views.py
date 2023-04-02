@@ -9,6 +9,7 @@ from profiles.models import Profile
 from chats.models import message
 from django.db.models import Q, F
 from users.models import FollowerCount
+from time_.get_time import getStringTime
 
 
 success = {"status": True, "status_code": 200}
@@ -86,16 +87,43 @@ class MyNotificationView(APIView):
     def get(self, request, page):
         page = page*16
         if request.user.is_authenticated:
-            notifications = MyNotification.objects.filter(Q(user = request.user, seen = False) | Q(user = request.user, seen = True)).order_by("seen")
+            notifications = MyNotification.objects.filter(Q(user = request.user, seen = False) | Q(user = request.user, seen = True))
             if notifications is None:
                 success['data'] = []
                 return Response(success)
             serializer = NotificationSerializer(notifications[int(page)-16:int(page)], many = True)
             for i in serializer.data:
                 try:
-                    i['subjectImage'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['profileimg']
+                    i['date'] = getStringTime(i['date'])
                 except:
                     pass
+                try:
+                    if i['notifType'] == 1:
+                        i['subjectImage'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['profileimg']
+                    elif i['notifType'] == 2:
+                        i['subjectImage'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = Post.objects.get(id = i['subject_id']).creator))).data['profileimg']
+                    elif i['notifType'] == 3:
+                        i['subjectImage'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['profileimg']
+                except:
+                    pass
+                try:
+                    if i['notifType'] == 1:
+                        i['subjectFullName'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['name']
+                    elif i['notifType'] == 2:
+                        i['subjectFullName'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = Post.objects.get(id = i['subject_id']).creator))).data['name']
+                    elif i['notifType'] == 3:
+                        i['subjectFullName'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['subjectUser'][0]))).data['name']
+                except:
+                    pass
+                try:
+                    i['NoOfcomment'] = Post.objects.get(id = i['subject_id']).NoOfcomment
+                except:
+                    pass
+                try:
+                    i['NoOflike'] = Post.objects.get(id = i['subject_id']).NoOflike
+                except:
+                    pass
+
                 del i['subjectUser']
                 
             if len(serializer.data) == 16:
@@ -118,14 +146,19 @@ class LikeNotificationView:
         name = Profile.objects.get(user = ako).name
         if name == "" or name == None:
             name = ako.username
-        creator = User.objects.get(username = Post.objects.get(id = postId).creator)
+        try:
+            creator_usr = Post.objects.filter(Q(id = postId) | Q(images_url__id = str(postId))).first().creator
+        except Post.DoesNotExist:
+            return
+        creator = User.objects.get(username = creator_usr)
         if creator.username == ako.username:
             name = "You"
         try:
             notif = MyNotification.objects.get(user = creator, subject_id = postId, notifType =2)
             if not ako in notif.subjectUser.all():
                 notif.subjectUser.add(ako)
-            notif.title = f"{name} and {str(len(notif.subjectUser.all()) -1)} others likes your posts"
+            title = f"{name} and {str(len(notif.subjectUser.all()) -1)} others likes your posts" if len(notif.subjectUser.all()) > 1 else f"{name} like your posts"
+            notif.title = title
             notif.save()
             return
         except MyNotification.DoesNotExist:
@@ -135,7 +168,7 @@ class LikeNotificationView:
             return
     
     def deleteNotification(ako, postId):
-        creator = User.objects.get(username = Post.objects.get(id = postId).creator)
+        creator = User.objects.get(username = Post.objects.get(Q(id = postId) | Q(images_url__id = str(postId))).creator)
         try:
             notif = MyNotification.objects.get(user = creator, subject_id = postId, description = "", notifType = 2)
             if ako in notif.subjectUser.all():
@@ -163,7 +196,7 @@ class CommentNotificationView:
         name = Profile.objects.get(user = request.user).name
         if name == "" or name == None:
             name = request.user.username
-        creator = User.objects.get(username = Post.objects.get(id = post_id).creator)
+        creator = User.objects.get(username = Post.objects.filter(Q(id = post_id) | Q(images_url__id = str(post_id))).first().creator)
         if creator == request.user:
             return
         

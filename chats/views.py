@@ -204,7 +204,10 @@ class DeleleMessage(APIView):
     def get(self, request, id):
         if request.user.is_authenticated:
             try:
-                message.objects.get(sender = request.user, id = id).delete()
+                chat = message.objects.get(sender = request.user, id = id)
+                chat.message_body = 'deleted.'
+                chat.is_delete = True
+                chat.save()
             except message.DoesNotExist:
                 err_404['message'] = "Not Found"
                 return Response(err_404)

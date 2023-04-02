@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 import uuid, random, os
 
@@ -21,31 +22,53 @@ def post_videos_rdm_name(a, b):
         g = Post.objects.filter(images_url=f).first()
         if g is None:
             return f
+        
+def get_unique_id():
+    while True:
+        a = uuid.uuid4()
+        go = True
+        if Post.objects.filter(id = a).first():
+            go = False
+        if Image.objects.filter(id = a).first():
+            go = False
+        if Videos.objects.filter(id = a).first():
+            go = False
+        if go == True:
+            return a
+
+
 class Image(models.Model):
+    id = models.UUIDField(primary_key=True, default=get_unique_id)
     image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image")
-    noOfLike = models.IntegerField(default=0)
-    noOfComment = models.IntegerField(default=0)
+    NoOflike = models.IntegerField(default=0)
+    NoOfcomment = models.IntegerField(default=0)
     class Meta:
-        ordering = ['image', 'noOfLike', 'noOfComment']
+        ordering = ['image', 'NoOflike', 'NoOfcomment']
     def __str__(self):
-        return str(self.noOfLike)
+        return str(self.id)
 
 class Videos(models.Model):
+    id = models.UUIDField(primary_key=True, default=get_unique_id)
     videos = models.FileField(upload_to=post_videos_rdm_name)
-    noOfLike = models.IntegerField(default=0)
-    noOfComment = models.IntegerField(default=0)
+    NoOflike = models.IntegerField(default=0)
+    NoOfcomment = models.IntegerField(default=0)
     class Meta:
-        ordering = ['videos', 'noOfLike', 'noOfComment']
+        ordering = ['videos', 'NoOflike', 'NoOfcomment']
     def __str__(self):
-        return str(self.noOfLike)
+        return str(self.id)
     
 class Post(models.Model):
+    class privacy_choice(models.TextChoices):
+        Public = 'P', _('Public')
+        Friends = 'F', _('Friends')
+        OnlyMe = 'O', _('Only-Me')
+
     id = models.UUIDField(primary_key = True, default=uuid.uuid4)
     source = models.TextField(max_length=200, default="direct message")
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creator')
     creator_full_name = models.TextField(max_length=200)
-    images_url = models.ManyToManyField(Image, blank=True)
-    videos_url = models.ManyToManyField(Videos, blank=True)
+    images_url = models.ManyToManyField(Image, blank=True, related_name="images")
+    videos_url = models.ManyToManyField(Videos, blank=True, related_name="video")
     title = models.TextField(blank=True)
     perma_link = models.TextField(blank=True)
     description = models.TextField(blank=True)
@@ -54,8 +77,9 @@ class Post(models.Model):
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
+    privacy = models.CharField(choices=privacy_choice.choices, default=privacy_choice.Friends, max_length=1)
     class Meta:
-        ordering = ["-created_at",]
+        ordering = ["-created_at"]
         
     def __str__(self):
         return str(self.creator)+" "+str(self.description)

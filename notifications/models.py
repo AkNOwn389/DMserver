@@ -15,6 +15,6 @@ class MyNotification(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)
     class Meta:
-        ordering = ("date",)
+        ordering = ["seen", "-date",]
     def __str__(self):
         return self.title

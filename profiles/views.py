@@ -32,8 +32,14 @@ def getUserDataByUser(username):
 
 class search(APIView):
     def finder(self, user):
-        data = User.objects.filter(Q(username__contains = user) | Q(first_name__contains = user) | Q(last_name__contains = user) | Q(email__contains = user))
-        return data
+        search = str(user).replace("%20", "").split(" ")
+        users = []
+        for posible in search:
+            data = User.objects.filter(Q(username__contains = posible) | Q(first_name__contains = posible) | Q(last_name__contains = posible) | Q(email__contains = posible) | Q(first_name__contains =  str(posible).lower()) | Q(last_name__contains =  str(posible).lower()) | Q(username__contains = str(posible).lower()) | Q(email__contains = str(posible).lower() ))
+            for i in data:
+                if i not in users:
+                    users.append(i)
+        return users
     def get(self, request, user, page):
         if request.user.is_authenticated:
             page = page*16

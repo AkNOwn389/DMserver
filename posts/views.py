@@ -15,6 +15,7 @@ from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Comment
+from django.db.models import Q
 
 # Create your views here.
 #class response
@@ -39,7 +40,7 @@ class GetPostDataById(APIView):
     def get(self, request, postId):
         if request.user.is_authenticated:
             try:
-                post = Post.objects.get(id = postId)
+                post = Post.objects.filter(Q(id = postId) | Q(images_url__id = postId) | Q(videos_url__id = postId)).first()
             except Post.DoesNotExist:
                 err_404['message'] = 'doests not exits'
                 return Response(err_404)
@@ -48,7 +49,12 @@ class GetPostDataById(APIView):
             success['data'] = serialiser.data
             success['data']['creator_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = serialiser.data['creator']))).data['profileimg']
             success['data']['your_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = request.user.username))).data['profileimg']
+            success['data']['created_at'] = getStringTime(serialiser.data['created_at'])
             success['data']['is_like'] = True if LikePost.objects.filter(post_id=serialiser.data['id'], username=request.user).first() else False
+            for i in success['data']['image_url']:
+                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+            for i in success['data']['videos_url']:
+                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
             return Response(success)
 
 class upload(APIView):
@@ -58,7 +64,8 @@ class upload(APIView):
             try:
                 images= request.FILES.getlist('image',)
             except KeyError:
-                return JsonResponse({"status": False, 'status_code': 400, 'message': 'image required'})
+                err_404['message'] = 'image required'
+                return Response(err_404)
             user = request.user
             data1 = request.data
             user_profile = Profile.objects.get(user = user)
@@ -70,7 +77,7 @@ class upload(APIView):
                     pass
                 else:
                     isError = True
-            data2 = {'creator': user.id, 'creator_full_name': user_profile.name, 'description': data1['caption'], 'media_type': data1['media_type'], 'image_urls': images}
+            data2 = {'creator': user.id, 'creator_full_name': user_profile.name, 'description': data1['caption'], 'media_type': data1['media_type'], 'image_urls': images, 'privacy': data1['privacy']}
             serializer = PostUploader(data = data2)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
@@ -95,7 +102,7 @@ class uploadTextPost(APIView):
         if me.is_authenticated:
             try:
                 user = Profile.objects.get(user=request.user)
-                data = {"creator": request.user.id, 'creator_full_name': user.name, "description": request.data['caption'], 'media_type': 1}
+                data = {"creator": request.user.id, 'creator_full_name': user.name, "description": request.data['caption'], 'media_type': 1, 'privacy': request.data['privacy']}
                 serializer = PostUploader(data=data)
                 if serializer.is_valid(raise_exception=True):
                     serializer.save()
@@ -119,11 +126,29 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': True})
 
 class Like_Post(APIView):
+    def GetPostData(self, post_id):
+        try:
+            post = Post.objects.get(id=post_id)
+            return post, None
+        except:
+            pass
+        try:
+            post = Post.objects.get(images_url__id=str(post_id))
+            return post.images_url.get(id = post_id), post
+        except:
+            pass
+
+        return None, None
     def post(self, request):
         user = request.user
         if user.is_authenticated:
             post_id = request.data['post_id']
-            post = Post.objects.get(id=post_id)
+            post, image_id = self.GetPostData(post_id)
+            if post == None and image_id == None:
+                err_404['message'] == "not found"
+                return Response(err_404)
+            
+
             like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
 
             if like_filter == None:
@@ -131,6 +156,8 @@ class Like_Post(APIView):
                 new_like.save()
                 post.NoOflike = post.NoOflike+1
                 post.save()
+                if image_id != None:
+                    post_id = image_id.id
                 LikeNotificationView.saveLike(ako=request.user, postId=post_id)
                 return JsonResponse({
                     'status': True,
@@ -140,7 +167,9 @@ class Like_Post(APIView):
                 like_filter.delete()
                 post.NoOflike = post.NoOflike-1
                 post.save()
-                LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
+                if image_id != None:
+                    post_id = image_id.id
+                #LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
                 return JsonResponse({
                     'status': True,
                     'message': 'post unlike',
@@ -228,7 +257,7 @@ class MyGallery(APIView):
     def get(self, request, page):
         user = request.user
         if user.is_authenticated:
-            post_list = Post.objects.filter(creator=user)
+            post_list = Post.objects.filter(creator=user).order_by("created_at")
             limit = page*16
             imagelist=[]
             for post_images in post_list:
@@ -244,17 +273,29 @@ class MyGallery(APIView):
                              "status_code":401,
                              "data": []})
 class DeleteCommentView(APIView):
+    def getPostData(self, post_id):
+        try:
+            post = Post.objects.get(id=post_id)
+            return post
+        except:
+            pass
+        try:
+            post = Post.objects.get(images_url__id=str(post_id))
+            return post.images_url.get(id = post_id)
+        except:
+            pass
+
+        return None
     def get(self, request, id, postId):
         if request.user.is_authenticated:
             try:
                 comment = Comment.objects.get(id = id, user = request.user)
-                post = Post.objects.get(id = postId)
+                post = self.getPostData(post_id=postId)
             except Comment.DoesNotExist:
                 err_404['message'] = "invalid data"
                 return Response(err_404)
             comment.delete()
             post.NoOfcomment = post.NoOfcomment-1
-            print(post.NoOfcomment)
             post.save()
             success['message'] = 'comment deleted'
             return Response(success)
@@ -263,6 +304,19 @@ class DeleteCommentView(APIView):
 
 
 class CommentView(APIView):
+    def getPostData(self, post_id):
+        try:
+            post = Post.objects.get(id=post_id)
+            return post
+        except:
+            pass
+        try:
+            post = Post.objects.get(images_url__id=str(post_id))
+            return post.images_url.get(id = post_id)
+        except:
+            pass
+
+        return None
     def post(self, request):
         if request.user.is_authenticated:
             user = request.user
@@ -270,7 +324,10 @@ class CommentView(APIView):
             comment = request.data['comment']
             post_id = request.data['post_id']
             try:
-                post = Post.objects.get(id = post_id)
+                post = self.getPostData(post_id=post_id)
+                if post == None:
+                    err_404['message'] = "post doest not exists"
+                    return JsonResponse(err_404)
             except Post.DoesNotExist:
                 err_404['message'] = "post doest not exists"
                 return JsonResponse(err_404)
