@@ -92,6 +92,7 @@ class Comment(models.Model):
     type = models.IntegerField(blank=False, default=1)
     comments = models.TextField(max_length=1500)
     created = models.DateTimeField(auto_now_add=True)
+    NoOflike = models.IntegerField(default=0)
 
     def __str__(self):
         return self.post_id
@@ -100,5 +101,11 @@ class LikePost(models.Model):
     post_id = models.CharField(max_length=500)
     username = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return str(self.username)
+
+class LikeComment(models.Model):
+    commentId = models.CharField(max_length=500)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     def __str__(self):
         return str(self.username)

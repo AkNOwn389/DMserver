@@ -1,4 +1,6 @@
 from django.contrib import admin
-from .models import FollowerCount
+from .models import FollowerCount, OnlineUser
 # Register your models here.
-admin.site.register(FollowerCount)
+list = [FollowerCount,
+        OnlineUser]
+admin.site.register(list)

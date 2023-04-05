@@ -6,5 +6,6 @@ urlpatterns = [
     path("notificationBadge", views.NotificationBadgeView.as_view(), name="Notifbadge"),
     path("chatBadge", views.ChatBadge.as_view(), name="chatbadge"),
     path('seen/id=<int:id>', views.Seen.as_view(), name = 'Seen'),
+    path('delete/id=<int:id>', views.Delete.as_view(), name = 'Delete'),
     path("notify", views.Notify.as_view(), name="notify"),
 ]

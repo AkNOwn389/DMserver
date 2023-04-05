@@ -14,8 +14,8 @@ from django.http import JsonResponse
 from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
-from .models import Comment
-from django.db.models import Q
+from .models import Comment, LikeComment
+from django.db.models import Q, F
 
 # Create your views here.
 #class response
@@ -37,13 +37,15 @@ err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
 class GetPostDataById(APIView):
+    success = {"status": True, "status_code": 200}
     def get(self, request, postId):
         if request.user.is_authenticated:
-            try:
-                post = Post.objects.filter(Q(id = postId) | Q(images_url__id = postId) | Q(videos_url__id = postId)).first()
-            except Post.DoesNotExist:
-                err_404['message'] = 'doests not exits'
-                return Response(err_404)
+            post = Post.objects.filter(Q(id = postId) | Q(images_url__id = postId) | Q(videos_url__id = postId)).first()
+            if post is None:
+                self.success['status'] = False
+                self.success['message'] = 'Not found'
+                self.success['status_code'] = 404
+                return Response(data=self.success)
             serialiser = PostSerializer(post)
             success['message'] = "success"
             success['data'] = serialiser.data
@@ -154,7 +156,7 @@ class Like_Post(APIView):
             if like_filter == None:
                 new_like = LikePost.objects.create(post_id=post_id, username=user)
                 new_like.save()
-                post.NoOflike = post.NoOflike+1
+                post.NoOflike+=1
                 post.save()
                 if image_id != None:
                     post_id = image_id.id
@@ -165,7 +167,7 @@ class Like_Post(APIView):
                     'post_likes': post.NoOflike})
             else:
                 like_filter.delete()
-                post.NoOflike = post.NoOflike-1
+                post.NoOflike-=1
                 post.save()
                 if image_id != None:
                     post_id = image_id.id
@@ -302,7 +304,39 @@ class DeleteCommentView(APIView):
         err_401['message'] = 'invalid user'
         return Response(err_401)
 
+class LikeComment(APIView):
+    def get(self, request, comment_id):
+        if request.user.is_authenticated:
+            try:
+                coment = Comment.objects.get(id = comment_id)
+            except Comment.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'comment not found'
+                })
+            if LikeComment.objects.filter(commentId = comment_id, user = request.user):
+                coment.NoOflike-=1
+                coment.save()
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'commentLike': coment.NoOflike,
+                    'message': 'unlike'
+                })
 
+            else:
+                coment.NoOflike+=1
+                coment.save()
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'commentLike': coment.NoOflike,
+                    'message': 'like'
+                })
+        return Response({'status': False,
+                         'status_code': 401,
+                         'message': 'invalid user'})
 class CommentView(APIView):
     def getPostData(self, post_id):
         try:
@@ -367,10 +401,14 @@ class CommentView(APIView):
                 i['Follower'] = isFollower(request.user, i['user'])
                 i['created'] = getStringTime(i['created'])
                 i['me'] = True if i['user'] == request.user.username else False
-            success['message'] = 'success'
-            success['hasMorePage'] = True if len(serialiser.data) == 16 else False
-            success['data'] = serialiser.data
-            return Response(success)
+
+            return Response({
+                'status': True,
+                'status_code': 200,
+                'message': 'success',
+                'hasMorePage': True if len(serialiser.data) == 16 else False,
+                'data': serialiser.data
+            })
         
         err_401['message'] = 'invalid user'
         return Response(err_401)

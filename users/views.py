@@ -127,34 +127,79 @@ class Follow(APIView):
                 FollowNotificationView.Notify(request=request, following=following)
                 return JsonResponse({'status':True, 'status_code': 200, 'message': 'following'})
         return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
+    
+class DeniedFollow(APIView):
+    def get(self, request, user):
+        if request.user.is_authenticated:
+            if request.user.username == user:
+                return JsonResponse({
+                    "status":False,
+                    "status_code": 404,
+                    "message": "invalid data"})
+            try:
+                usr = User.objects.get(username = user)
+            except:
+                return JsonResponse({
+                    'status': False,
+                    'status_code':404,
+                    'message': 'user not exists'})
+            
+            try:
+                f = FollowerCount.objects.get(follower = usr, user = request.user)
+                f.delete()
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success'
+                })
+            except FollowerCount.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'request not exists'
+                })
+        return JsonResponse({
+            'status':False,
+            'status_code': 401,
+            'message': 'user not logged'
+            })
 class get_follower(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:
             user = request.user
-            post_list = FollowerCount.objects.filter(user=user)
+            usr = FollowerCount.objects.filter(user=user)
             limit = page*16
             follower = []
-            if len(post_list) !=0:
-                for x in post_list:
+            if len(usr) !=0:
+
+                for x in usr:
+                    if FollowerCount.objects.filter(user = x.follower, follower = request.user).first():
+                        continue
                     a = Profile.objects.get(user = x.follower)
                     follower.append(a)
+                if len(follower) != 0:
+                    serializer = ProfileSerializer(follower[int(limit)-16:int(limit)], many = True)
+                    for i in serializer.data:
+                        del i['bio']
+                        del i['bgimg']
+                        i['Following'] = isFollowed(request.user, i['user'])
+                        i['Follower'] = isFollower(request.user, i['user'])
 
-                serializer = ProfileSerializer(follower[int(limit)-16:int(limit)], many = True)
-                for i in serializer.data:
-                    del i['bio']
-                    del i['bgimg']
-                    i['Following'] = isFollowed(request.user, i['user'])
-                    i['Follower'] = isFollower(request.user, i['user'])
 
-
-                success['hasMorePage'] = True if len(serializer.data) == 16 else False
-                success['message'] = 'success'
-                success['data'] = serializer.data
-                return JsonResponse(success)
+                    return Response(status=200, data={
+                        'status': True,
+                        'status_code': 200,
+                        'message': 'success',
+                        'hasMorePage': True if len(serializer.data) == 16 else False,
+                        'data': serializer.data
+                    })
             
-            success['message'] = 'you have no followers at this time.'
-            success['data'] = []
-            return JsonResponse(success)
+            return Response(status=200, data={
+                'status': True,
+                'status_code': 200,
+                'message': 'you have no followers at this time.',
+                'data': []
+            })
         
         err_401['message'] = "invalid cridential"
         return JsonResponse(err_401)
@@ -168,26 +213,36 @@ class get_following_list(APIView):
             if len(post_list) != 0:
                 following = []
                 for x in post_list:
+                    if FollowerCount.objects.filter(user = request.user, follower = x.user).first():
+                        continue
                     a = Profile.objects.get(user = x.user)
                     following.append(a)
 
-                serializer = ProfileSerializer(following[int(limit)-16:int(limit)], many = True)
-                for i in serializer.data:
-                    del i['bio']
-                    del i['bgimg']
-                    i['Followed'] = isFollowed(request.user, i['user'])
-                    i['Follower'] = isFollower(request.user, i['user'])
-                success['hasMorePage'] = True if len(serializer.data) == 16 else False
-                success['message'] = 'success'
-                success['data'] = serializer.data
-                return JsonResponse(success)
-            
-            success['message'] = 'you have no followed at this time.'
-            success['data'] = []
-            return JsonResponse(success)
+                if len(following) != 0:
+                    serializer = ProfileSerializer(following[int(limit)-16:int(limit)], many = True)
+                    for i in serializer.data:
+                        del i['bio']
+                        del i['bgimg']
+                        i['Followed'] = isFollowed(request.user, i['user'])
+                        i['Follower'] = isFollower(request.user, i['user'])
+                    return Response(status=200, data={
+                            'status': True,
+                            'status_code': 200,
+                            'message': 'success',
+                            'hasMorePage': True if len(serializer.data) == 16 else False,
+                            'data': serializer.data
+                        })
+                
+
+            return Response(status=200, data={
+                'status': True,
+                'status_code': 200,
+                'message': 'you have no followed at this time.',
+                'data': []
+            })
             
         err_401['message'] = "invalid cridential"
-        return JsonResponse(err_401)
+        return Response(err_401)
     
 class get_friend(APIView):
     def get(self, request, page):
@@ -196,16 +251,24 @@ class get_friend(APIView):
             friend = []
             following = FollowerCount.objects.filter(follower = request.user)
             if len(following) == 0:
-                return JsonResponse({"status": True, 'status_code': 200, 'message': 'you have no friends at time.', 'data': []})
+                return Response({
+                    "status": True,
+                    'status_code': 200,
+                    'message': 'you have no friends at time.',
+                    'data': []
+                    })
+            
             for x in following:
                 f2f = FollowerCount.objects.filter(user = request.user, follower = x.user).first()
                 if f2f is not None:
                     friend.append(f2f)
+
             friends = []
             for user in friend:
                 a = Profile.objects.get(user = user.follower)
                 if a is not None:
                     friends.append(a)
+
             if len(friends) != 0:
                 serializer = ProfileSerializer(friends[int(limit)-16:int(limit)], many = True)
                 for i in serializer.data:
@@ -214,15 +277,21 @@ class get_friend(APIView):
                     i['Followed'] = isFollowed(request.user, i['user'])
                     i['Follower'] = isFollower(request.user, i['user'])
 
-                success['hasMorePage'] = True if len(serializer.data) == 16 else False
-                success['message'] = 'success'
-                success['data'] = serializer.data
-                return JsonResponse(success)
+                return Response(status=200, data={
+                            'status': True,
+                            'status_code': 200,
+                            'message': 'success',
+                            'hasMorePage': True if len(serializer.data) == 16 else False,
+                            'data': serializer.data
+                        })
 
 
-            success['message'] = 'you have no friends at time.'
-            success['data'] = []
-            return JsonResponse(success)
+            return Response(status=200, data={
+                'status': True,
+                'status_code': 200,
+                'message': 'you have no friends at time.',
+                'data': []
+            })
             
         err_401['message'] = "invalid cridential"
         return JsonResponse(err_401)
@@ -271,6 +340,12 @@ class login(APIView):
         if user is None:
             user = User.objects.filter(email=username).first()
         if user is not None:
+            if user.is_superuser or user.is_staff:
+                return Response({
+                    'status': False,
+                    'status_code': 1,
+                    'message': 'Invalid password'
+                })
             user_profile = Profile.objects.filter(user = user).first()
             user_profile_serialize = ProfileSerializer(user_profile)
             if not user.check_password(password):

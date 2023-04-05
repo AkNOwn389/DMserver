@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from profiles.models import Profile
 from posts.serializers import ImagesSerializer
+from .models import RecentSearch
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -20,3 +21,16 @@ class EditProfileSerializer(serializers.ModelSerializer):
   class Meta:
     model = Profile
     fields = ['user_id', 'profileimg', 'bgimg', 'bio', 'location', 'name']
+
+class RecentSearchSerializer(serializers.ModelSerializer):
+  user = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+        )
+  searcher = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+        )
+  class Meta:
+    model = RecentSearch
+    fields = ["user", "searcher", "date_search"]

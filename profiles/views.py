@@ -1,13 +1,18 @@
 from posts.models import Post
+from posts.serializers import PostSerializer, PostCommentSerializer, Comment
 from profiles.models import Profile
 from users.models import FollowerCount
 from users.serializers import UserSerializer
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
-from .serializers import ProfileSerializer
+from .serializers import ProfileSerializer, RecentSearchSerializer
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, F, Avg, Aggregate
 from rest_framework.response import Response
+from users.views import isFollowed, isFollower
+from .models import RecentSearch
+from django.utils import timezone
+from time_.get_time import getStringTime
 
 # Create your views here.
 
@@ -53,7 +58,6 @@ def getUserDataByUser(username):
 class search(APIView):
     def finder(self, user):
         search = str(user).replace("%20", " ").split(" ")
-        print(search)
         users = []
         for posible in search:
             if posible == "":
@@ -231,4 +235,214 @@ class avatarView(APIView):
             success['message'] = 'success'
             return Response(success)
         err_401['message'] = "ivalid user"
+        return Response(err_401)
+    
+
+
+class SaveRecentSearch(APIView):
+    def get(self, request, user):
+        if request.user.is_authenticated:
+            try:
+                c = User.objects.get(username = user)
+            except User.DoesNotExist:
+                return Response({
+                    'status':False,
+                    'status_code': 404,
+                    'message': 'user not exists'
+                })
+            a = RecentSearch.objects.filter(user = c, searcher = request.user).first()
+            if a is None:
+                RecentSearch.objects.create(user = c, searcher = request.user).save()
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success'
+                })
+            else:
+                a.date_search = timezone.now()
+                a.save()
+                b = RecentSearch.objects.filter(searcher = request.user)
+                if len(b) > 50:
+                    for i in range(len(b) - 50):
+                        b[i].delete()
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success'
+                })
+        return Response({
+            'status': False,
+            'status_code': 401,
+            'message': 'user not logged'
+        })
+class GetRecentSearch(APIView):
+    def get(self, request):
+        if request.user.is_authenticated:
+            a = RecentSearch.objects.filter(searcher = request.user).order_by("-date_search")
+            if a != None:
+                b = RecentSearchSerializer(a[:16], many = True)
+                for i in b.data:
+                    try:
+                        del i['searcher']
+                        profile = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['user']))).data
+                        i['profileimg'] = profile['profileimg']
+                        i['name'] = profile['name']
+                        i['username'] = i['user']
+                        i['location'] = profile['location']
+                        i['isFollowed'] = isFollowed(request.user, i['user'])
+                        i['isFollower'] = isFollower(request.user, i['user'])
+                        i['searchType'] = 0
+                    except Profile.DoesNotExist:
+                        del i
+                    except User.DoesNotExist:
+                        del i
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success',
+                    'data': b.data
+                })
+            return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success',
+                    'data': []
+                })
+        return Response({
+            'status': False,
+            'status_code': 401,
+            'message': 'user not logged'
+        })
+
+
+class MainSearch(APIView):
+    def finder(self, user):
+        search = str(user).replace("%20", " ").split(" ")
+        users = []
+        for posible in search:
+            if posible == "":
+                continue
+            data = User.objects.filter(
+                Q(username__contains = posible) | 
+                Q(first_name__contains = posible) | 
+                Q(last_name__contains = posible) | 
+                Q(email__contains = posible) | 
+                Q(first_name__contains =  str(posible).lower()) | 
+                Q(last_name__contains =  str(posible).lower()) | 
+                Q(username__contains = str(posible).lower()) | 
+                Q(email__contains = str(posible).lower() 
+                ))
+            
+            for i in data:
+                if i not in users:
+                    users.append(i)
+        return users
+    def postFinder(self, user):
+        search = str(user).replace("%20", " ").split(" ")
+        object = []
+        for posible in search:
+            if posible == "":
+                continue
+            data = Post.objects.filter(
+                Q(description__contains = posible, media_type = 2) |
+                Q(creator_full_name__contains = posible, media_type = 2) |
+                Q(created_at__contains = posible, media_type=2)
+                )
+            for i in data:
+                if i not in object:
+                    object.append(i)
+        return object
+    def videoFinder(self, user):
+        object = self.postFinder(user=user)
+        data = []
+        for i in object:
+            if len(i.videos_url.all()) != 0:
+                data.append(i)
+        return data
+    
+    def get(self, request,type , user, page):
+        if request.user.is_authenticated:
+            me = ProfileSerializer(Profile.objects.get(user = request.user))
+            if type == "users":
+                object = self.finder(user=user)
+            elif type == "posts":
+                object = self.postFinder(user=user)
+            elif type == "videos":
+                object = self.videoFinder(user=user)
+            else:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'invalid',
+                    'hasMorePage': False,
+                    'data': []
+                })
+
+            page = page*16
+            if len(object) != 0:
+                data = []
+                for ids in object:
+                    if ids == request.user:
+                        continue
+                    if type == "users":
+                        usr = getUserDataByUser(ids)
+                    elif type == "posts" or type == "videos":
+                        try:
+                            usr = PostSerializer(ids)
+                        except:
+                            continue
+                    if usr is not None:
+                        if type == "posts":
+                            data.append(usr.data)
+                        elif type == "users":
+                            data.append(usr)
+                        elif type == "videos":
+                            data.append(usr.data)
+
+                for i in data:
+                    if type == "users":
+                        i['isFollowed'] = isFollowed(request.user, i['username'])
+                        i['isFollower'] = isFollower(request.user, i['username'])
+                        i['searchType'] = 1
+                    elif type == "posts":
+                        i['isFollowed'] = isFollowed(request.user, i['creator'])
+                        i['isFollower'] = isFollower(request.user, i['creator'])
+                        i['creator_avatar'] = getAvatarByUsername(i['creator'])
+                        i['your_avatar'] = me.data['profileimg']
+                        i['dateCreated'] = i['created_at']
+                        i['created_at'] = getStringTime(i['created_at'])
+                        i['searchType'] = 2
+                    elif type == "videos":
+                        i['isFollowed'] = isFollowed(request.user, i['creator'])
+                        i['isFollower'] = isFollower(request.user, i['creator'])
+                        i['creator_avatar'] = getAvatarByUsername(i['creator'])
+                        i['your_avatar'] = me.data['profileimg']
+                        i['dateCreated'] = i['created_at']
+                        i['created_at'] = getStringTime(i['created_at'])
+                        i['searchType'] = 3
+                    elif type == "pages":
+                        i['searchType'] = 4
+
+                dataResponse = data[int(page)-16:int(page)]
+
+                if len(dataResponse) == 16:
+                    hasMorePage = True
+                else:
+                    hasMorePage = False
+                
+                return Response({
+                    'status':True,
+                    'status_code': 200,
+                    'message': 'List Retreave',
+                    'hasMorePage': hasMorePage,
+                    'data': dataResponse
+                })
+            return Response({
+                'status':False,
+                'status_code': 401,
+                'message': 'User List Retreave',
+                'hasMorePage': False,
+                'data': []
+            })
+        err_401['message'] = "user not logged"
         return Response(err_401)

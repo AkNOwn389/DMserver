@@ -46,15 +46,33 @@ class Notify(APIView):
         err_401['message'] = "invalid user"
         return Response(err_401)
     
+class Delete(APIView):
+    success = {"status": True, "status_code": 200}
+    def get(self, request, id):
+        if request.user.is_authenticated:
+            try:
+                MyNotification.objects.get(user = request.user, id = id).delete()
+                self.success['message'] = "success"
+                return Response(self.success)
+            except MyNotification.DoesNotExist:
+                err_404['message'] = "doest not exists"
+                return Response(err_404)
 
+        err_401['message'] = 'invalid cridential'
+        return Response(err_401)
 class Seen(APIView):
+    success = {"status": True, "status_code": 200}
     def get(self, request, id):
         if request.user.is_authenticated:
             try:
                 notif = MyNotification.objects.get(user = request.user, id = id)
+                if notif.seen == True:
+                    self.success['message'] = "Already seen"
+                    self.success['status'] = False
+                    return Response(success)
                 notif.seen = True
                 notif.save()
-                success['message'] = "success"
+                self.success['message'] = "success"
                 return Response(success)
             except MyNotification.DoesNotExist:
                 err_404['message'] = "doest not exists"
@@ -85,13 +103,14 @@ class ChatBadge(APIView):
     
 class MyNotificationView(APIView):
     def get(self, request, page):
-        page = page*16
+        page = page*12
         if request.user.is_authenticated:
+            
             notifications = MyNotification.objects.filter(Q(user = request.user, seen = False) | Q(user = request.user, seen = True))
             if notifications is None:
                 success['data'] = []
                 return Response(success)
-            serializer = NotificationSerializer(notifications[int(page)-16:int(page)], many = True)
+            serializer = NotificationSerializer(notifications[int(page)-12:int(page)], many = True)
             for i in serializer.data:
                 try:
                     i['date'] = getStringTime(i['date'])
@@ -126,7 +145,7 @@ class MyNotificationView(APIView):
 
                 del i['subjectUser']
                 
-            if len(serializer.data) == 16:
+            if len(serializer.data) == 12:
                 hasMorePage = True
             else:
                 hasMorePage = False

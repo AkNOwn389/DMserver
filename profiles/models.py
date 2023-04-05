@@ -36,3 +36,10 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class RecentSearch(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="search")
+    searcher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="searcher")
+    date_search = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ["date_search"]
