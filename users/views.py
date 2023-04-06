@@ -16,10 +16,12 @@ from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
 from notifications.views import FollowNotificationView
+from .models import OnlineUser
 from smtplib import SMTPRecipientsRefused
 import random, uuid
 from django.utils import timezone
 from datetime import datetime
+import time
 
 
 success = {"status": True, "status_code": 200}
@@ -41,6 +43,9 @@ err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
 # Create your views here.
+
+
+
 def isFollowed(me, username):
     try:
         a = User.objects.get(username = username)
@@ -55,6 +60,58 @@ def isFollower(me, username):
         return True
     except:
         return False
+class OnLine(APIView):
+    def post(self, request):
+        if request.user.is_authenticated:
+            user = request.user
+            if OnlineUser.objects.filter(user = user).first():
+                
+                a = OnlineUser.objects.get(user = user).delete()
+                return Response({'message': 'Online'})
+            else:
+                a = OnlineUser.objects.create(user = user)
+                a.save()
+                
+                return Response({'message': 'ok'})
+
+            
+        else:
+            return Response({
+                'status': False,
+                'status_code': 401,
+                'message': 'invalid user'
+            })
+    def get(self, request, username):
+        if request.user.is_authenticated:
+            try:
+                user = User.objects.get(username = username)
+            except User.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'user not exists',
+                    'isOnline': False
+                })
+            if OnlineUser.objects.filter(user = user).first():
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success',
+                    'isOnline': True
+                })
+            else:
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success',
+                    'isOnline': False
+                })
+        return Response({
+            'status': False,
+            'status_code': 401,
+            'message': 'invalid user'
+        })
+
 
 class WhoAmI(APIView):
     def get(self, request):

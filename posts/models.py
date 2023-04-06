@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.db import models
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFill
 import uuid, random, os
 
 
@@ -36,12 +38,17 @@ def get_unique_id():
         if go == True:
             return a
 
-
 class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=get_unique_id)
     image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image")
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
+    thumbnail = ImageSpecField(
+        source='image',
+        format='JPEG',
+        processors=[ResizeToFill(300, 600)],
+        options={'quality': 60})
+    
     class Meta:
         ordering = ['image', 'NoOflike', 'NoOfcomment']
     def __str__(self):
@@ -107,5 +114,3 @@ class LikePost(models.Model):
 class LikeComment(models.Model):
     commentId = models.CharField(max_length=500)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    def __str__(self):
-        return str(self.username)

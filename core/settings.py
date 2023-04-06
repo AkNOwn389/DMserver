@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'notifications',
     'cloudinary',
     'profiles',
+    'imagekit',
     'users',
     'feeds',
     'chats',

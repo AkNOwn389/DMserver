@@ -39,6 +39,7 @@ class newsfeed(APIView):
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
+                i['me'] = True if i['creator'] == request.user.username else False
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
                     i['is_like'] = True
                 else:

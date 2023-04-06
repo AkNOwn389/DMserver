@@ -14,8 +14,9 @@ from django.http import JsonResponse
 from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
-from .models import Comment, LikeComment
+from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos
 from django.db.models import Q, F
+from PIL import Image
 
 # Create your views here.
 #class response
@@ -36,6 +37,37 @@ err_413 = {"status": False, "status_code": 413}
 err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
+
+class DeletePost(APIView):
+    def get(self, request, postId):
+        if request.user.is_authenticated:
+            try:
+                posts = Post.objects.get(id = postId, creator = request.user)
+            except Post.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'posts not exists'
+                })
+            try:
+                for i in posts.images_url.all():
+                    img = PostImage.objects.get(id = str(i))
+                    img.delete()
+            except:
+                pass
+            posts.delete()
+            return Response({
+                'status': True,
+                'status_code': 200,
+                'message': 'posts deleted.'
+            })
+        
+        return Response({'status': False,
+                         'status_code': 401,
+                         'message': 'invalid user'
+                         })
+
+
 class GetPostDataById(APIView):
     success = {"status": True, "status_code": 200}
     def get(self, request, postId):
@@ -65,11 +97,12 @@ class upload(APIView):
             isError = False
             try:
                 images= request.FILES.getlist('image',)
+
             except KeyError:
                 err_404['message'] = 'image required'
                 return Response(err_404)
             user = request.user
-            data1 = request.data
+            data = request.data
             user_profile = Profile.objects.get(user = user)
             
             for i in images:
@@ -79,19 +112,27 @@ class upload(APIView):
                     pass
                 else:
                     isError = True
-            data2 = {'creator': user.id, 'creator_full_name': user_profile.name, 'description': data1['caption'], 'media_type': data1['media_type'], 'image_urls': images, 'privacy': data1['privacy']}
-            serializer = PostUploader(data = data2)
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                post = Post.objects.get(id = serializer.data['id'])
-                if not isError:
+
+            if not isError:
+                try:
+                    postToUpload = Post.objects.create(creator = user,
+                                            creator_full_name=user_profile.name,
+                                            description = data['caption'],
+                                            media_type=data['media_type'],
+                                            privacy=data['privacy'])
+                except KeyError:
+                    return Response({
+                        'status': False,
+                        'status_code': 403,
+                        'message': 'invalid cridentials'
+                    })
+                try:
                     for i in images:
-                        post.images_url.create(image = i)
-                    post.save()
-                    return JsonResponse({'status': True,'status_code': 200, 'message': 'upload data success'})
-                else:
-                    post.delete()
-                    return JsonResponse({'status': False,'status_code': 200, 'message': 'error'})
+                        postToUpload.images_url.create(image = i)
+                    postToUpload.save()
+                except:
+                    postToUpload.delete()
+                return JsonResponse({'status': True,'status_code': 200, 'message': 'upload data success'})
             else:
                 return JsonResponse({'status': False,'status_code': 200, 'message': 'invalid data'})
             
@@ -178,7 +219,7 @@ class Like_Post(APIView):
                     'post_likes': post.NoOflike})
             
 class MyPostListView(APIView):
-    success = {'status': True,'status_code': 200, 'message': 'beta test'}
+    success = {'status': True,'status_code': 200, 'message': 'success'}
     err = {"status":False, "message":"invalid token", "status_code":401}
     def get(self, request, page):
         user = request.user
@@ -265,15 +306,22 @@ class MyGallery(APIView):
             for post_images in post_list:
                 imagelist.extend(post_images.images_url.all())
             serializer = ImagesSerializer(imagelist[int(limit)-16:int(limit)], many = True)
-            if len(serializer.data) < 16:
-                hasMorePage = False
-            else:
+            if len(serializer.data) == 16:
                 hasMorePage = True
-            return JsonResponse({'status': True,'status_code': 200, 'message': 'success','lenght': len(serializer.data), 'hasMorePage': hasMorePage, 'data': serializer.data})
-        return JsonResponse({"status":False,
-                             "message":"invalid token",
-                             "status_code":401,
-                             "data": []})
+            else:
+                hasMorePage = False
+            return Response({'status': True,
+                             'status_code': 200,
+                             'message': 'success',
+                             'lenght': len(serializer.data),
+                             'hasMorePage': hasMorePage,
+                             'data': serializer.data
+                             })
+        return Response({"status":False,
+                        "message":"invalid token",
+                        "status_code":401,
+                        "data": []
+                        })
 class DeleteCommentView(APIView):
     def getPostData(self, post_id):
         try:
@@ -304,7 +352,7 @@ class DeleteCommentView(APIView):
         err_401['message'] = 'invalid user'
         return Response(err_401)
 
-class LikeComment(APIView):
+class LikeComments(APIView):
     def get(self, request, comment_id):
         if request.user.is_authenticated:
             try:
@@ -315,22 +363,24 @@ class LikeComment(APIView):
                     'status_code': 404,
                     'message': 'comment not found'
                 })
-            if LikeComment.objects.filter(commentId = comment_id, user = request.user):
+            if Like_Comment.objects.filter(commentId = comment_id, user = request.user).first():
+                Like_Comment.objects.get(commentId = comment_id, user = request.user).delete()
                 coment.NoOflike-=1
                 coment.save()
                 return Response({
-                    'status': False,
-                    'status_code': 404,
+                    'status': True,
+                    'status_code': 200,
                     'commentLike': coment.NoOflike,
                     'message': 'unlike'
                 })
 
             else:
+                Like_Comment.objects.create(user = request.user, commentId=comment_id).save()
                 coment.NoOflike+=1
                 coment.save()
                 return Response({
-                    'status': False,
-                    'status_code': 404,
+                    'status': True,
+                    'status_code': 200,
                     'commentLike': coment.NoOflike,
                     'message': 'like'
                 })
@@ -338,6 +388,7 @@ class LikeComment(APIView):
                          'status_code': 401,
                          'message': 'invalid user'})
 class CommentView(APIView):
+    success = {'status': True,'status_code': 200, 'message': 'success'}
     def getPostData(self, post_id):
         try:
             post = Post.objects.get(id=post_id)
@@ -372,14 +423,14 @@ class CommentView(APIView):
                 post.save()
                 CommentNotificationView.Notify(post_id=post_id, request=request)
                 serializer = PostCommentSerializer(a)
-                success['message'] = 'success'
-                success['data'] = serializer.data
-                success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = serializer.data['user'])).name
-                success['data']['Followed'] = isFollowed(request.user, serializer.data['user'])
-                success['data']['Follower'] = isFollower(request.user, serializer.data['user'])
-                success['data']['created'] = getStringTime(serializer.data['created'])
-                success['data']['me'] = True
-                return JsonResponse(success)
+                self.success['message'] = 'success'
+                self.success['data'] = serializer.data
+                self.success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = serializer.data['user'])).name
+                self.success['data']['Followed'] = isFollowed(request.user, serializer.data['user'])
+                self.success['data']['Follower'] = isFollower(request.user, serializer.data['user'])
+                self.success['data']['created'] = getStringTime(serializer.data['created'])
+                self.success['data']['me'] = True
+                return Response(self.success)
             except:
                 err_403['message'] = 'system failure'
                 return Response(err_403)
@@ -393,13 +444,19 @@ class CommentView(APIView):
             if len(comment) == 0:
                 success['message'] = 'success'
                 success['data'] = []
-                return Response(success)
+                return Response({
+                    'status': True,
+                    'status_code':200,
+                    'message': 'success',
+                    'data': []
+                })
             serialiser = PostCommentSerializer(comment[int(page)-16:int(page)], many = True)
             for i in serialiser.data:
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['user'])).name
                 i['Followed'] = isFollowed(request.user, i['user'])
                 i['Follower'] = isFollower(request.user, i['user'])
                 i['created'] = getStringTime(i['created'])
+                i['isLike'] = True if Like_Comment.objects.filter(user = request.user, commentId = i['id']).first() else False
                 i['me'] = True if i['user'] == request.user.username else False
 
             return Response({
