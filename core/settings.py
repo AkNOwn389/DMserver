@@ -14,7 +14,7 @@ CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', '
 
 INSTALLED_APPS = [
     #'channels',
-    #'daphne',
+    'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
