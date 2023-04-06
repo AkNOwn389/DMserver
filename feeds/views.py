@@ -8,6 +8,7 @@ from time_.get_time import getStringTime
 from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
 from django.http import JsonResponse
+from django.db.models import Q
 from datetime import datetime
 # Create your views here.
 
@@ -29,7 +30,12 @@ class newsfeed(APIView):
                 user_following_list.append(users.user)
             user_following_list.append(request.user)
             for usernames in user_following_list:
-                feed_lists = Post.objects.filter(creator=usernames).order_by("-created_at")
+                if usernames == request.user:
+                    feed_lists = Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P") | Q(creator=usernames, privacy= "O")).order_by("-created_at")
+                elif FollowerCount.objects.filter(user = usernames, follower = request.user).first():
+                    feed_lists = Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P")).order_by("-created_at")
+                else:
+                    feed_lists = Post.objects.filter(creator=usernames, privacy= "P").order_by("-created_at")
                 for x in feed_lists:
                     feed.append(x)
             y = PostSerializer(feed[int(limit)-16:int(limit)], many = True)

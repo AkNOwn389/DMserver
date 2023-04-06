@@ -16,7 +16,10 @@ from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos
 from django.db.models import Q, F
-from PIL import Image
+from PIL import Image as ImagePIL, ImageFile
+from django.db import transaction
+from io import BytesIO, StringIO
+from django.core.files import File
 
 # Create your views here.
 #class response
@@ -91,7 +94,19 @@ class GetPostDataById(APIView):
                 i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
             return Response(success)
 
+#@transaction.atomic
 class upload(APIView):
+    def getSize(self, image):
+        a = []
+        b = []
+        for i in image:
+            m = ImagePIL.open(i)
+            w, h = m.size
+            a.append(w)
+            b.append(h)
+            m.close()
+        return a, b
+    
     def post(self, request):
         if request.user.is_authenticated:
             isError = False
@@ -128,10 +143,25 @@ class upload(APIView):
                     })
                 try:
                     for i in images:
-                        postToUpload.images_url.create(image = i)
+                        postToUpload.images_url.create(
+                            image = i
+                            )
+                    for i in postToUpload.images_url.all():
+                        
+                        im = ImagePIL.open(i.image)
+                        w, h = im.size
+                        i.width = w
+                        i.heigth = h
+                        i.save()
                     postToUpload.save()
-                except:
-                    postToUpload.delete()
+                except Exception as e:
+                    print(e)
+                    #postToUpload.delete()
+                    return Response({
+                        'status': False,
+                        'status_code': 403,
+                        'message': str(e)
+                    })
                 return JsonResponse({'status': True,'status_code': 200, 'message': 'upload data success'})
             else:
                 return JsonResponse({'status': False,'status_code': 200, 'message': 'invalid data'})

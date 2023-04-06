@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
+from cloudinary_storage.storage import RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage, MediaCloudinaryStorage
 import uuid, random, os
 
 
@@ -40,7 +41,9 @@ def get_unique_id():
 
 class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=get_unique_id)
-    image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image")
+    image = models.ImageField(max_length=500, upload_to=post_rdm_name, verbose_name="Image", storage=MediaCloudinaryStorage())
+    width = models.TextField(blank=True)
+    heigth = models.TextField(blank=True)
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     thumbnail = ImageSpecField(
@@ -56,7 +59,7 @@ class Image(models.Model):
 
 class Videos(models.Model):
     id = models.UUIDField(primary_key=True, default=get_unique_id)
-    videos = models.FileField(upload_to=post_videos_rdm_name)
+    videos = models.FileField(upload_to=post_videos_rdm_name, storage=VideoMediaCloudinaryStorage())
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     class Meta:
@@ -95,7 +98,7 @@ class Comment(models.Model):
     post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    image = models.ImageField(blank=True)
+    image = models.ImageField(blank=True, storage=MediaCloudinaryStorage())
     type = models.IntegerField(blank=False, default=1)
     comments = models.TextField(max_length=1500)
     created = models.DateTimeField(auto_now_add=True)
