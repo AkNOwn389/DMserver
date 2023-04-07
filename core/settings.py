@@ -1,18 +1,21 @@
+from __future__ import unicode_literals, absolute_import
 from pathlib import Path
 from datetime import timedelta
-import os
+import os, django
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+#BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from os.path import join
 SECRET_KEY = 'django-insecure-5**9_bssl585!4n%!ab%s#)5i7h2c!42k)jt_mthea5bq%2!q+'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['.vercel.app', '192.168.0.115']
+ALLOWED_HOSTS = ['.vercel.app', '192.168.0.115', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.168.0.115:8000', 'http://127.0.0.1:8000']
 CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
 
 INSTALLED_APPS = [
+    #'channels',
     'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
@@ -23,6 +26,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'django.contrib.admin',
     'django.contrib.auth',
+    'django_extensions',
     'rest_framework',
     'Authentication',
     'corsheaders',
@@ -50,6 +54,19 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'TIMEOUT': 36000,
+        'KEY_PREFIX': 'django_mail_admin',
+    },
+    'django_mail_admin': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'TIMEOUT': 36000,
+        'KEY_PREFIX': 'django_mail_admin',
+    }
+}
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -65,11 +82,21 @@ TEMPLATES = [
         },
     },
 ]
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    #'loggers': {'django.db.backends': {'level': 'DEBUG','handlers': ['console'],}},'root': {'handlers': ['console'],'level': 'INFO',},
+}
 
 
-WSGI_APPLICATION = 'core.wsgi.application'
+#WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
-
+"""
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -78,9 +105,17 @@ CHANNEL_LAYERS = {
         },
     },
 }
+"""
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+DIALOGS_PAGINATION = 50
+MESSAGES_PAGINATION = 250
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -103,7 +138,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+"""
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
@@ -146,7 +181,7 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+STATIC_ROOT = join(BASE_DIR, 'run', 'static_root')
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)

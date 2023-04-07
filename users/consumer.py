@@ -3,10 +3,6 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from.models import OnlineUser
 import json
 
-
-                
-
-		
 class LoginSocket(AsyncWebsocketConsumer):
     def deleteOnlineUser(self, user):
             try:

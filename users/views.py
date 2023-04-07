@@ -61,57 +61,21 @@ def isFollower(me, username):
         return True
     except:
         return False
-class OnLine(APIView):
-    def post(self, request):
-        if request.user.is_authenticated:
-            user = request.user
-            if OnlineUser.objects.filter(user = user).first():
-                
-                a = OnlineUser.objects.get(user = user).delete()
-                return Response({'message': 'Online'})
-            else:
-                a = OnlineUser.objects.create(user = user)
-                a.save()
-                
-                return Response({'message': 'ok'})
-
-            
-        else:
-            return Response({
-                'status': False,
-                'status_code': 401,
-                'message': 'invalid user'
-            })
-    def get(self, request, username):
-        if request.user.is_authenticated:
-            try:
-                user = User.objects.get(username = username)
-            except User.DoesNotExist:
-                return Response({
-                    'status': False,
-                    'status_code': 404,
-                    'message': 'user not exists',
-                    'isOnline': False
-                })
-            if OnlineUser.objects.filter(user = user).first():
-                return Response({
-                    'status': True,
-                    'status_code': 200,
-                    'message': 'success',
-                    'isOnline': True
-                })
-            else:
-                return Response({
-                    'status': True,
-                    'status_code': 200,
-                    'message': 'success',
-                    'isOnline': False
-                })
-        return Response({
-            'status': False,
-            'status_code': 401,
-            'message': 'invalid user'
-        })
+    
+def isOnline(user=None, username = None):
+    
+    if user == None:
+        try:
+            user = User.objects.get(username = username)
+        except User.DoesNotExist:
+            return False
+    elif username == None:
+        return False
+    
+    if OnlineUser.objects.filter(user = user).first():
+        return True
+    else:
+        return False
 
 
 class WhoAmI(APIView):
@@ -143,7 +107,6 @@ class user_suggested(APIView):
 
             for user in user_following:
                 try:
-                    print(user)
                     user_list = User.objects.get(username=user.user)
                     if user_list.is_superuser or user_list.is_staff or user_list.is_anonymous:
                         continue
@@ -250,8 +213,7 @@ class get_follower(APIView):
                         del i['bgimg']
                         i['Following'] = isFollowed(request.user, i['user'])
                         i['Follower'] = isFollower(request.user, i['user'])
-
-
+                    
                     return Response(status=200, data={
                         'status': True,
                         'status_code': 200,
@@ -309,7 +271,38 @@ class get_following_list(APIView):
             
         err_401['message'] = "invalid cridential"
         return Response(err_401)
+class CancelRequest(APIView):
+    def get(self, request, user):
+        if request.user.is_authenticated:
+            try:
+                usr = User.objects.get(username = user)
+            except User.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'user not found'
+                })
+            try:
+                FollowerCount.objects.get(follower = request.user, user = usr).delete()
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'canceled'
+                })
+            
+            except FollowerCount.DoesNotExist:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'user not found'
+                })
+        return Response({
+            'status': False,
+            'status_code': 401,
+            'message': 'user not logged'
+        })
     
+
 class get_friend(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:

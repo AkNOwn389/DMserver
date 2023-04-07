@@ -137,7 +137,7 @@ class upload(APIView):
             m.close()
         return a, b
     
-    def post(self, request):
+    def put(self, request):
         if request.user.is_authenticated:
             isError = False
             try:
