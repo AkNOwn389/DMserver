@@ -13,8 +13,8 @@ CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.
 CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
 
 INSTALLED_APPS = [
-    #'channels',
-    'daphne',
+    'channels',
+    #'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -43,7 +43,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    #'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -71,13 +71,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
-CHANNEL_LAYERS ={
-    'default': {
-    "BACKEND": "channels.layers.InMemoryChannelLayer",
-    #"CONFIG": {
-       # "hosts": [('0.0.0.0', 8000)]
-       # }
-    }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
 }
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases

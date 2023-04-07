@@ -16,6 +16,7 @@ from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
 from notifications.views import FollowNotificationView
+from django.db.models import Q
 from .models import OnlineUser
 from smtplib import SMTPRecipientsRefused
 import random, uuid
@@ -133,15 +134,23 @@ class user_suggested(APIView):
     def get(self, request, page):
         if request.user.is_authenticated:
             page=page*16
-            user_following = FollowerCount.objects.filter(follower=request.user)
+            user_following = FollowerCount.objects.filter(Q(follower=request.user) | Q(user = request.user))
+            
             # user suggestion starts
             
             all_users = User.objects.all()
             user_following_all = []
 
             for user in user_following:
-                user_list = User.objects.get(username=user.user)
-                user_following_all.append(user_list)
+                try:
+                    print(user)
+                    user_list = User.objects.get(username=user.user)
+                    if user_list.is_superuser or user_list.is_staff or user_list.is_anonymous:
+                        continue
+                    #if not user_list in user_following_all:
+                    user_following_all.append(user_list)
+                except User.DoesNotExist:
+                    pass
             a = []
             new_suggestions_list = [x for x in list(all_users) if (x not in list(user_following_all))]
             current_user = User.objects.filter(username=request.user.username)

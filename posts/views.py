@@ -41,6 +41,36 @@ err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
 
+class ChangePrivacy(APIView):
+    def get(self, request, id, privacy):
+        if request.user.is_authenticated:
+            try:
+                posts = Post.objects.get(id = id, creator = request.user)
+            except:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'posts not exists'
+                })
+            if privacy == "Public":
+                posts.privacy = "P"
+            elif privacy == "Friends":
+                posts.privacy = "F"
+            elif privacy == "Only-Me":
+                posts.privacy = "O"
+            else:
+                pass
+            posts.save()
+            return Response({
+                'status':True,
+                'status_code': 200,
+                'message': 'success'
+            })
+        return Response({'status': False,
+                         'status_code': 401,
+                         'message': 'invalid user'
+                         })
+
 class DeletePost(APIView):
     def get(self, request, postId):
         if request.user.is_authenticated:

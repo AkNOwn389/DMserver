@@ -12,6 +12,7 @@ urlpatterns = [
     path('mygallery/page=<int:page>', views.MyGallery.as_view(), name='postlist'),
     path('postview/<str:user>/page=<int:page>', views.PostView.as_view(), name="postview"),
     path('getpost/id=<str:postId>', views.GetPostDataById.as_view(), name="getpostdata"),
+    path('changePrivacy/<str:id>/privacy=<str:privacy>', views.ChangePrivacy.as_view()),
     path('deletePosts/postId=<str:postId>', views.DeletePost.as_view(), name = 'deletePost'),
     path('delete_comment/commentId=<int:id>/postId=<str:postId>', views.DeleteCommentView.as_view(), name='deleteComent')
 ]
