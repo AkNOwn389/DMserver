@@ -8,14 +8,12 @@ SECRET_KEY = 'django-insecure-5**9_bssl585!4n%!ab%s#)5i7h2c!42k)jt_mthea5bq%2!q+
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['.vercel.app']
 CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.168.0.115:8000', 'http://127.0.0.1:8000']
 CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
 
 INSTALLED_APPS = [
-    #'channels',
-    #'daphne',
-    #'hypercorn',
+    'daphne',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
