@@ -13,8 +13,9 @@ CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.
 CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
 
 INSTALLED_APPS = [
-    'channels',
+    #'channels',
     #'daphne',
+    #'hypercorn',
     'rest_framework_simplejwt.token_blacklist',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
