@@ -4,12 +4,12 @@ from .models import Image, Videos,  Post, LikePost, Comment
 class ImagesSerializer(serializers.ModelSerializer):
   class Meta:
     model = Image
-    fields = ['id', 'image', 'NoOfcomment', 'NoOflike']
+    fields = ['id', 'image', 'thumbnail', 'NoOfcomment', 'NoOflike']
 
 class VideoSerializer(serializers.ModelSerializer):
   class Meta:
     model = Videos
-    fields = ['id', 'video', 'NoOfcomment', 'NoOflike']
+    fields = ['id', 'videos', 'thumbnail']
 
 class PostUploader(serializers.ModelSerializer):
   class Meta:
@@ -29,7 +29,7 @@ class PostSerializer(serializers.ModelSerializer):
   def to_representation(self, instance):
         rep = super().to_representation(instance)
         rep["image_url"] = ImagesSerializer(instance.images_url.all(), many=True).data
-        rep["videos_url"] = ImagesSerializer(instance.videos_url.all(), many=True).data
+        rep["videos_url"] = VideoSerializer(instance.videos_url.all(), many=True).data
         return rep
 
 class LikesPostSerializer(serializers.ModelSerializer):

@@ -14,12 +14,15 @@ from django.http import JsonResponse
 from notifications.models import MyNotification
 from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
-from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos
+from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos as PostVideos
 from django.db.models import Q, F
 from PIL import Image as ImagePIL, ImageFile
 from django.db import transaction
 from io import BytesIO, StringIO
 from django.core.files import File
+from PIL import Image
+from django.core.files.base import ContentFile
+from io import BytesIO
 
 # Create your views here.
 #class response
@@ -86,6 +89,9 @@ class DeletePost(APIView):
                 for i in posts.images_url.all():
                     img = PostImage.objects.get(id = str(i))
                     img.delete()
+                for i in posts.videos_url.all():
+                    img = PostVideos.objects.get(id = str(i))
+                    img.delete()
             except:
                 pass
             posts.delete()
@@ -126,26 +132,33 @@ class GetPostDataById(APIView):
 
 #@transaction.atomic
 class upload(APIView):
-    def getSize(self, image):
-        a = []
-        b = []
-        for i in image:
-            m = ImagePIL.open(i)
-            w, h = m.size
-            a.append(w)
-            b.append(h)
-            m.close()
-        return a, b
-    
+    def getType(self, request):
+        print(request.data)
+        try:
+            images= request.FILES.getlist('image',)
+        except Exception as e:
+            images = None
+            TYPE = 5
+        try:
+            videos = request.FILES.getlist('video',)
+            return images, videos, 5
+        except Exception as e:
+            videos = None
+            TYPE = 2
+        if images == None and videos == None:
+            TYPE = 0
+        return images, videos, TYPE
     def put(self, request):
         if request.user.is_authenticated:
             isError = False
-            try:
-                images= request.FILES.getlist('image',)
-
-            except KeyError:
-                err_404['message'] = 'image required'
-                return Response(err_404)
+            images, videos, TYPE = self.getType(request=request)
+            
+            if images == None and videos == None:
+                return Response({
+                        'status': False,
+                        'status_code': 403,
+                        'message': 'media type not supported'
+                    })
             user = request.user
             data = request.data
             user_profile = Profile.objects.get(user = user)
@@ -157,13 +170,13 @@ class upload(APIView):
                     pass
                 else:
                     isError = True
-
+                    
             if not isError:
                 try:
                     postToUpload = Post.objects.create(creator = user,
                                             creator_full_name=user_profile.name,
                                             description = data['caption'],
-                                            media_type=data['media_type'],
+                                            media_type=TYPE,
                                             privacy=data['privacy'])
                 except KeyError:
                     return Response({
@@ -172,17 +185,19 @@ class upload(APIView):
                         'message': 'invalid cridentials'
                     })
                 try:
-                    for i in images:
-                        postToUpload.images_url.create(
-                            image = i
-                            )
-                    for i in postToUpload.images_url.all():
-                        
-                        im = ImagePIL.open(i.image)
-                        w, h = im.size
-                        i.width = w
-                        i.heigth = h
-                        i.save()
+                    if TYPE or TYPE == 5:
+                        for i in images:
+                            print(i)
+                            postToUpload.images_url.create(image = i)
+                        for i in postToUpload.images_url.all():
+                            im = ImagePIL.open(i.image)
+                            w, h = im.size
+                            i.width = w
+                            i.heigth = h
+                            i.save()
+                    if TYPE == 5:
+                        for i in videos:
+                            postToUpload.videos_url.create(videos = i)
                     postToUpload.save()
                 except Exception as e:
                     print(e)
@@ -334,7 +349,7 @@ class PostView(APIView):
             if usr == None:
                 err_404['message'] = "user not exists"
                 return Response(err_404)
-            post = Post.objects.filter(creator = usr).order_by("-created_at")
+            post = Post.objects.filter(Q(creator = usr, privacy = "P") | Q(creator = usr, privacy = "F")).order_by("-created_at")
 
             serializer = PostSerializer(post[int(page)-16: int(page)], many = True)
             for i in serializer.data:

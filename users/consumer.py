@@ -23,7 +23,7 @@ class LoginSocket(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
             await database_sync_to_async(self.deleteOnlineUser)(self.user)
-            print("socket close: ", close_code)
+            print(f"Log out: {self.user}", close_code)
 
     async def receive(self, text_data):
             await self.send(text_data=json.dumps({"message": str(text_data)}))

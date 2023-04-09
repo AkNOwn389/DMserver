@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import random, os
+from cloudinary_storage.storage import MediaCloudinaryStorage, VideoMediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticHashedCloudinaryStorage, StaticCloudinaryStorage
 # Create your models here.
 def image_path(instance, filename):
     basefilename, file_extention = os.path.splitext(filename)
@@ -24,8 +25,8 @@ class Profile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.TextField(max_length=200, blank=True)
     bio = models.TextField(blank=True)
-    bgimg = models.ImageField(upload_to=image_path, default='default-profile-picture_lxgxrl.jpg')
-    profileimg = models.ImageField(upload_to=image_path, default='default-profile-picture_lxgxrl.jpg')
+    bgimg = models.ImageField(upload_to=image_path, default='default-profile-picture_lxgxrl.jpg', storage=MediaCloudinaryStorage())
+    profileimg = models.ImageField(upload_to=image_path, default='default-profile-picture_lxgxrl.jpg', storage=MediaCloudinaryStorage())
     interested = models.CharField(max_length=1, choices=GENDER_CHOICES, default="N")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, default="N")
     location = models.TextField(max_length=100, blank=True)

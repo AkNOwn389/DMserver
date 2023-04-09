@@ -5,6 +5,7 @@ from users.models import FollowerCount
 from posts.models import Post, LikePost
 from posts.serializers import PostSerializer
 from time_.get_time import getStringTime
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
 from django.http import JsonResponse
@@ -60,7 +61,74 @@ class newsfeed(APIView):
                 return JsonResponse(self.data)
 
         return JsonResponse(self.err)
-    
+class VideosFeed(APIView):
+    err = {'status': False, 'status_code': 401, 'message': 'user not logged'}
+    def get(self, request, page):
+        if request.user.is_authenticated:
+            user = request.user
+            me = Profile.objects.filter(user = user).first()
+            me = ProfileSerializer(me)
+            limit = page*16
+            all_creators = FollowerCount.objects.filter(follower = user)
+            video_feed = []
+            for creator in all_creators:
+                try:
+                    post = Post.objects.filter(creator = user, media_type = 5).order_by("created_at")
+                    video_feed.extend(PostSerializer(post, many = True).data)
+                except Post.DoesNotExist:
+                    pass
+
+                if FollowerCount.objects.filter(user = creator.user, follower = user).first():
+                    user_all_posts = Post.objects.filter(Q(creator = creator.user, privacy = "F", media_type = 5) | Q(creator = creator.user, privacy = "P", media_type = 5))
+                    if not user_all_posts is None:
+                        video_feed.extend(PostSerializer(user_all_posts, many = True).data)
+                else:
+                    user_all_posts = Post.objects.filter(creator = creator, privacy = "P", media_type = 5)
+                    if not user_all_posts is None:
+                        video_feed.extend(PostSerializer(user_all_posts, many = True).data)
+            data = video_feed[int(limit)-16: int(page)]
+            print(data)
+            if len(data) < 16:
+                num = 16 -len(data)
+                a = 0
+                while True:
+                    dagdag = Post.objects.filter(privacy = "P", media_type = 5).order_by("created_at")
+                    try:
+                        b = PostSerializer(dagdag[a]).data
+                    except IndexError:
+                        break
+                    if not b in data or not b in video_feed:
+                        data.append(b)
+                    else:
+                        a+=1
+                    if len(data) >= 16:
+                        break
+            
+            for i in data:
+                i['creator_avatar'] = getAvatarByUsername(i['creator'])
+                i['your_avatar'] = me.data['profileimg']
+                i['dateCreated'] = i['created_at']
+                i['created_at'] = getStringTime(i['created_at'])
+                i['me'] = True if i['creator'] == request.user.username else False
+                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+                try:
+                    i['video_url'] = i['videos_url'][0]['videos']
+                    i['thumbnail'] = i['videos_url'][0]['thumbnail']
+                except Exception as e:
+                    print(e)
+                del i['videos_url']
+                del i['image_url']
+            
+            return Response({
+                'status':True,
+                'status_code': 200,
+                'message': 'success',
+                'hasMorePage': True if len(data) >= 16 else False,
+                'data': data
+            })
+        return Response(self.err)
+            
+
 
 class MyPostView(APIView):
     err = {"status": False, "status_code": 401, "message": "invalidated"}

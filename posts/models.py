@@ -3,16 +3,23 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
+from moviepy.editor import VideoFileClip
 from cloudinary_storage.storage import RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage, MediaCloudinaryStorage
 import uuid, random, os
+from PIL import Image as ImagePIL
+from io import BytesIO, StringIO
+from django.core.files import File
+from cloudinary.forms import CloudinaryFileField
+from cloudinary.models import CloudinaryField
 
 
 # Create your models here.
 def post_rdm_name(a, b):
     c, d = os.path.splitext(b)
     while True:
-        e = ''.join((str(random.randint(0, 9))) for x in range(40))
-        f = f"post_images/{str(e)}{str(d)}"
+        e = ''.join((str(random.randint(0, 9))) for x in range(10))
+        f = f"post_images/{str(e)}{str(d)}".encode('utf-8').decode()
+        f = f.replace(" ", "-")
         g = Image.objects.filter(image=f).first()
         if g is None:
             return str(f)
@@ -20,9 +27,10 @@ def post_rdm_name(a, b):
 def post_videos_rdm_name(a, b):
     c, d = os.path.splitext(b)
     while True:
-        e = ''.join((str(random.randint(0, 9))) for x in range(40))
-        f = f"post_avatar/{str(c)}-{str(a)}-{str(e)}-{str(d)}"
-        g = Post.objects.filter(images_url=f).first()
+        e = ''.join((str(random.randint(0, 9))) for x in range(10))
+        f = f"post_videos/{str(e)}-{str(d)}".encode('utf-8').decode()
+        f = f.replace(" ", "-")
+        g = Videos.objects.filter(videos=f).first()
         if g is None:
             return f
         
@@ -46,24 +54,26 @@ class Image(models.Model):
     heigth = models.TextField(blank=True)
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
-    thumbnail = ImageSpecField(
-        source='image',
-        format='JPEG',
-        processors=[ResizeToFill(300, 600)],
-        options={'quality': 60})
-    
+    thumbnail = models.ImageField(upload_to='posts_images/thumbnails/', blank=True,  verbose_name='thumbnail', storage=MediaCloudinaryStorage())
     class Meta:
-        ordering = ['image', 'NoOflike', 'NoOfcomment']
+        ordering = ['image', 'NoOflike', 'NoOfcomment', 'thumbnail']
     def __str__(self):
         return str(self.id)
 
 class Videos(models.Model):
-    id = models.UUIDField(primary_key=True, default=get_unique_id)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    thumbnail = models.ImageField(blank=True, storage=MediaCloudinaryStorage())
     videos = models.FileField(upload_to=post_videos_rdm_name, storage=VideoMediaCloudinaryStorage())
-    NoOflike = models.IntegerField(default=0)
-    NoOfcomment = models.IntegerField(default=0)
+    """
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        clip = VideoFileClip(self.videos.path)
+        thumbnail = clip.subclip(0, 10).save_frame(self.thumbnail.path)
+        """
+
     class Meta:
-        ordering = ['videos', 'NoOflike', 'NoOfcomment']
+        ordering = ['videos', 'thumbnail']
+        
     def __str__(self):
         return str(self.id)
     
