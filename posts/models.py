@@ -63,7 +63,7 @@ class Image(models.Model):
 class Videos(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     thumbnail = models.ImageField(blank=True, storage=MediaCloudinaryStorage())
-    videos = models.FileField(upload_to=post_videos_rdm_name, storage=VideoMediaCloudinaryStorage())
+    videos = models.FileField(upload_to=post_videos_rdm_name, verbose_name="Video", storage=VideoMediaCloudinaryStorage())
     """
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

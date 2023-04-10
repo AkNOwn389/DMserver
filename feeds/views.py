@@ -41,7 +41,11 @@ class newsfeed(APIView):
                     feed.append(x)
             y = PostSerializer(feed[int(limit)-16:int(limit)], many = True)
             for i in y.data:
-                
+                if len(i['image_url']) == 0 and len(i['videos_url']) == 1:
+                    i['media_type'] = 6
+                    i['videos'] = i['videos_url'][0]['videos']
+                    del i['image_url']
+                    del i['videos_url']
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
@@ -73,9 +77,11 @@ class VideosFeed(APIView):
             video_feed = []
             for creator in all_creators:
                 try:
-                    post = Post.objects.filter(creator = user, media_type = 5).order_by("created_at")
+                    post = Post.objects.filter(creator = user, media_type = 5).order_by("-created_at")
                     video_feed.extend(PostSerializer(post, many = True).data)
-                except Post.DoesNotExist:
+                    print(post)
+                except Exception as e:
+                    print(e)
                     pass
 
                 if FollowerCount.objects.filter(user = creator.user, follower = user).first():
@@ -86,10 +92,9 @@ class VideosFeed(APIView):
                     user_all_posts = Post.objects.filter(creator = creator, privacy = "P", media_type = 5)
                     if not user_all_posts is None:
                         video_feed.extend(PostSerializer(user_all_posts, many = True).data)
-            data = video_feed[int(limit)-16: int(page)]
-            print(data)
-            if len(data) < 16:
-                num = 16 -len(data)
+            DATA = video_feed[int(limit)-16:int(page)*16]
+            if len(DATA) < 16:
+                num = 16 -len(DATA)
                 a = 0
                 while True:
                     dagdag = Post.objects.filter(privacy = "P", media_type = 5).order_by("created_at")
@@ -97,14 +102,17 @@ class VideosFeed(APIView):
                         b = PostSerializer(dagdag[a]).data
                     except IndexError:
                         break
-                    if not b in data or not b in video_feed:
-                        data.append(b)
+                    if not b in DATA or not b in video_feed:
+                        DATA.append(b)
                     else:
                         a+=1
-                    if len(data) >= 16:
+                    if len(DATA) == 16:
                         break
             
-            for i in data:
+            for i in DATA:
+                if len(i['videos_url']) is 0:
+                    DATA.remove(i)
+                    continue
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
@@ -115,7 +123,7 @@ class VideosFeed(APIView):
                     i['video_url'] = i['videos_url'][0]['videos']
                     i['thumbnail'] = i['videos_url'][0]['thumbnail']
                 except Exception as e:
-                    print(e)
+                    continue
                 del i['videos_url']
                 del i['image_url']
             
@@ -123,8 +131,9 @@ class VideosFeed(APIView):
                 'status':True,
                 'status_code': 200,
                 'message': 'success',
-                'hasMorePage': True if len(data) >= 16 else False,
-                'data': data
+                'hasMorePage': True if len(DATA) == 16 else False,
+                'len': len(DATA),
+                'data': DATA
             })
         return Response(self.err)
             
