@@ -2,7 +2,6 @@ echo "BUILD START BOSS DARIUS"
 python3 -m pip install --user --no-cache-dir google-cloud-bigquery
 python3 -m pip install --upgrade setuptools
 python3.9 manage.py collectstatic --noinput
-apt-get install python-dev
 python3.9 pip install --upgrade-pip
 python3.9 pip install mysql-python
 python3.9 -m pip install configparser
@@ -25,7 +24,6 @@ python3.9 -m pip install channels
 python3.9 -m pip install imageio
 python3.9 -m pip install pilkit
 python3.9 -m pip install websocket-client
-python3.8 -m pip install --upgrade systemd-python
 python3.9 -m pip install mysql-python
 
 python3.9 manage.py collectstatic --noinput --clear
