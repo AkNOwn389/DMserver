@@ -18,10 +18,17 @@ python3.9 -m pip install imageio
 python3.9 -m pip install pilkit
 python3.9 -m pip install websocket-client
 python3.9 -m pip install urllib3
+python3.8 -m pip install --upgrade systemd-python
 python3.9 -m pip install mysqlclient
+python3.9 -m pip install mysql-python
+sudo apt-get install libmysqlclient-dev
+apt-get install python-dev
+python3.9 pip install mysql-python
 python3.9 manage.py collectstatic --noinput --clear
 yum install sqlite-devel
 ./configure
 make && make altinstall
+python3 -m pip install --user --no-cache-dir google-cloud-bigquery
+python3 -m pip install --upgrade setuptools
 
 echo "BUILD END"
