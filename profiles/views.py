@@ -166,7 +166,7 @@ class ProfilePictureUpdate(APIView):
         new_post.save()
         return Response(success)
 
-    def post(self, request):
+    def put(self, request):
         user = request.user
         if user.is_authenticated:
             try:
@@ -197,7 +197,7 @@ class ProfileCoverUpdate(APIView):
         new_post.save()
         return Response(success)
 
-    def post(self, request):
+    def put(self, request):
         user = request.user
         if user.is_authenticated:
             try:

@@ -124,9 +124,24 @@ class VideosFeed(APIView):
                     i['thumbnail'] = i['videos_url'][0]['thumbnail']
                 except Exception as e:
                     continue
-                del i['videos_url']
-                del i['image_url']
-            
+                try:
+                    del i['videos_url']
+                except:
+                    pass
+                try:
+                    del i['image_url']
+                except:
+                    pass
+            for i in DATA:
+                try:
+                    del i['videos_url']
+                except:
+                    pass
+                try:
+                    del i['image_url']
+                except:
+                    pass
+        
             return Response({
                 'status':True,
                 'status_code': 200,
