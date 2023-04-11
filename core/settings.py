@@ -1,16 +1,19 @@
 from __future__ import unicode_literals, absolute_import
 from pathlib import Path
 from datetime import timedelta
-import os, json
+import os, json, sys
+import dj_database_url
 
 #BASE_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from os.path import join
-#SECRET_KEY = 'django-insecure-5**9_bssl585!4n%!ab%s#)5i7h2c!42k)jt_mthea5bq%2!q+'
-SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
+from django.core.management.utils import get_random_secret_key
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key())
+#SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
 
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
+DEVELOPMENT_MODE =  os.getenv("DEVELOPMENT_MODE", "False") == "True"
 
 ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', '.now.sh', '192.168.0.115']
 CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.168.0.115:8000', 'http://127.0.0.1:8000']
@@ -133,13 +136,20 @@ DATABASES = {
     }
 }
 """
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'ATOMIC_REQUESTS': True,
+if DEVELOPMENT_MODE  is True:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            'ATOMIC_REQUESTS': True,
+        }
     }
-}
+elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
+    if os.getenv("DATABASE_URL", None) is None:
+        raise Exception("DATABASE_URL environment variable not defined")
+    DATABASES = {
+        "default": dj_database_url.parse(os.environ.get("DATABASE_URL"),)
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -185,7 +195,7 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = join(BASE_DIR, 'run', 'static_root')
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'output', 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
