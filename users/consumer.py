@@ -16,6 +16,7 @@ class LoginSocket(AsyncWebsocketConsumer):
                 pass
     async def connect(self):
             self.user = self.scope['user']
+            print(self.user)
             if self.user.is_authenticated:
                 await database_sync_to_async(self.addOnlineUser)(self.user)
                 await self.accept()
