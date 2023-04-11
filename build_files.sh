@@ -3,13 +3,13 @@ python3 -m pip install --user --no-cache-dir google-cloud-bigquery
 python3 -m pip install --upgrade setuptools
 python3.9 manage.py collectstatic --noinput
 apt-get install python-dev
-python3.9 -m pip install django
 python3.9 pip install --upgrade-pip
 python3.9 pip install mysql-python
 python3.9 -m pip install configparser
 python3.9 -m pip install mysqlclient
 python3.9 -m pip install -r requirements.txt
 python3.9 -m pip install daphne
+python3.9 -m pip install django
 python3.9 -m pip install djangorestframework-simplejwt
 python3.9 -m pip install django-cors-headers
 python3.9 -m pip install django-cloudinary-storage
