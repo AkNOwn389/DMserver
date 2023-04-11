@@ -1,12 +1,14 @@
 from __future__ import unicode_literals, absolute_import
 from pathlib import Path
 from datetime import timedelta
-import os, django
+import os, json
 
 #BASE_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from os.path import join
-SECRET_KEY = 'django-insecure-5**9_bssl585!4n%!ab%s#)5i7h2c!42k)jt_mthea5bq%2!q+'
+#SECRET_KEY = 'django-insecure-5**9_bssl585!4n%!ab%s#)5i7h2c!42k)jt_mthea5bq%2!q+'
+SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
+
 
 DEBUG = True
 
