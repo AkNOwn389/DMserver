@@ -12,7 +12,7 @@ SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['.vercel.app', '192.168.0.115', '127.0.0.1',]
+ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', '.now.sh']
 CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.168.0.115:8000', 'http://127.0.0.1:8000']
 CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
 
@@ -116,7 +116,7 @@ DIALOGS_PAGINATION = 50
 MESSAGES_PAGINATION = 250
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -136,10 +136,11 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': f"{BASE_DIR}/db.sqlite3",
+        'ATOMIC_REQUESTS': True,
     }
 }
-"""
+
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
