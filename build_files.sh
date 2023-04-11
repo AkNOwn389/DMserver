@@ -6,6 +6,7 @@ python3.9 -m pip install djangorestframework-simplejwt
 python3.9 -m pip install django-cors-headers
 python3.9 -m pip install django-cloudinary-storage
 python3.9 -m pip install cloudinary
+python3.9 -m pip install django_extensions
 python3.9 manage.py collectstatic --noinput --clear
 
 echo "BUILD END"
