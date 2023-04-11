@@ -18,6 +18,7 @@ python3.9 -m pip install imageio
 python3.9 -m pip install pilkit
 python3.9 -m pip install websocket-client
 python3.9 -m pip install urllib3
+python3.9 -m pip install mysqlclient
 
 python3.9 manage.py collectstatic --noinput --clear
 
