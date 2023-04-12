@@ -15,9 +15,9 @@ SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
 DEBUG = True
 DEVELOPMENT_MODE =  True
 
-ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', '.now.sh', '192.168.0.115']
-CSRF_TRUSTED_ORIGINS = ['https://d1db-124-105-235-119.ap.ngrok.io', 'http://192.168.0.115:8000', 'http://127.0.0.1:8000']
-CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://192.168.0.115:8000', 'https://d1db-124-105-235-119.ap.ngrok.io', 'http://127.0.0.1:8000']
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['*']
+CORS_ORIGIN_WHITELIST = ['*']
 
 INSTALLED_APPS = [
     'daphne',
@@ -127,7 +127,7 @@ DATABASES = {
         'NAME': 'jndduxfa',
         'USER': 'jndduxfa',
         'PASSWORD': 'B9FkbVHpz_x3dXiJxwI1p801rT-KY9Tj',
-        'HOST': 'trumpet.db.elephantsql.com',
+        'HOST': '34.253.160.140',
     }
 }
 
