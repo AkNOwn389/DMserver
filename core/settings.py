@@ -128,7 +128,6 @@ DATABASES = {
         'USER': 'jndduxfa',
         'PASSWORD': 'B9FkbVHpz_x3dXiJxwI1p801rT-KY9Tj',
         'HOST': 'trumpet.db.elephantsql.com',
-        'PORT': '',
     }
 }
 
