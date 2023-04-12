@@ -3,17 +3,9 @@ from django.contrib.auth.models import User
 from django.db.models import Q, F
 
 
-class singleOneToOneRoom(models.Model):
-    first_user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="first_user", null=False)
-    second_user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="second_user", null=False)
-
-
-    class Meta:
-        unique_together = ["first_user", "second_user"]
-        
-
+class PrivateRoom(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_connector')
+    connected_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chatMate')
 
 class message(models.Model):
     message_body = models.TextField()

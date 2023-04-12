@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import singleOneToOneRoom, message
+from .models import PrivateRoom, message
 # Register your models here.
-lists=[singleOneToOneRoom,
+lists=[PrivateRoom,
        message]
 admin.site.register(lists)

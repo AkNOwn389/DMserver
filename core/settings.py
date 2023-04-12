@@ -123,6 +123,8 @@ MESSAGES_PAGINATION = 250
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -132,7 +134,6 @@ DATABASES = {
         'HOST': '34.253.160.140',
     }
 }
-
 
 """
 DATABASES = {
@@ -151,6 +152,7 @@ DATABASES = {
     }
 
 }
+
 DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
