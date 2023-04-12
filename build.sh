@@ -1,11 +1,9 @@
+#/bin/bash
+
 echo "BUILD START BOSS DARIUS"
-python3 -m pipenv install
-python3.9 -m pipenv shell
 python3 -m pip install --upgrade setuptools
 python3.9 manage.py collectstatic --noinput
-python3.9 pip install mysql-python
 python3.9 -m pip install configparser
-python3.9 -m pip install mysqlclient
 python3.9 -m pip install -r requirements.txt
 python3.9 -m pip install daphne
 python3.9 -m pip install django
@@ -24,7 +22,10 @@ python3.9 -m pip install channels
 python3.9 -m pip install imageio
 python3.9 -m pip install pilkit
 python3.9 -m pip install websocket-client
-python3.9 -m pip install mysql-python
 python3.9 manage.py collectstatic --noinput --clear
-
 echo "BUILD END"
+echo "Make Migrations"
+python3.9 manage.py makemigrations --noinput
+python3.9 manage.py migrate --noinput
+echo "Collect Static..."
+python3.9 manage.py collectstatic --noinput --clear

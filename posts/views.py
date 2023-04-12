@@ -134,26 +134,22 @@ class GetPostDataById(APIView):
 class upload(APIView):
     def getType(self, request):
         print(request.data)
-        try:
-            images= request.FILES.getlist('image',)
-        except Exception as e:
-            images = None
-            TYPE = 5
-        try:
-            videos = request.FILES.getlist('video',)
-            return images, videos, 5
-        except Exception as e:
-            videos = None
-            TYPE = 2
-        if images == None and videos == None:
-            TYPE = 0
-        return images, videos, TYPE
+
+        images= request.FILES.getlist('image',)
+        videos = request.FILES.getlist('video',)
+        if images == [] and videos == []:
+            return None, None, 0
+        if images == [] and videos != []:
+            return None, videos, 5
+        if images != [] and videos == []:
+            return images, None, 2
+        
+        return images, videos, 5
     def put(self, request):
         if request.user.is_authenticated:
             isError = False
             images, videos, TYPE = self.getType(request=request)
-            
-            if images == None and videos == None:
+            if images == None and videos == None and TYPE == 0:
                 return Response({
                         'status': False,
                         'status_code': 403,
@@ -162,14 +158,15 @@ class upload(APIView):
             user = request.user
             data = request.data
             user_profile = Profile.objects.get(user = user)
-            
-            for i in images:
-                y = {"image": i}
-                x = ImagesSerializer(data = y)
-                if x.is_valid(raise_exception=True):
-                    pass
-                else:
-                    isError = True
+
+            if images != None:
+                for i in images:
+                    y = {"image": i}
+                    x = ImagesSerializer(data = y)
+                    if x.is_valid(raise_exception=True):
+                        pass
+                    else:
+                        isError = True
                     
             if not isError:
                 try:
@@ -185,16 +182,17 @@ class upload(APIView):
                         'message': 'invalid cridentials'
                     })
                 try:
-                    if TYPE or TYPE == 5:
-                        for i in images:
-                            print(i)
-                            postToUpload.images_url.create(image = i)
-                        for i in postToUpload.images_url.all():
-                            im = ImagePIL.open(i.image)
-                            w, h = im.size
-                            i.width = w
-                            i.heigth = h
-                            i.save()
+                    if TYPE == 2 or TYPE == 5:
+                        if images != None:
+                            for i in images:
+                                print(i)
+                                postToUpload.images_url.create(image = i)
+                            for i in postToUpload.images_url.all():
+                                im = ImagePIL.open(i.image)
+                                w, h = im.size
+                                i.width = w
+                                i.heigth = h
+                                i.save()
                     if TYPE == 5:
                         for i in videos:
                             postToUpload.videos_url.create(videos = i)

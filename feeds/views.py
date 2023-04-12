@@ -79,9 +79,7 @@ class VideosFeed(APIView):
                 try:
                     post = Post.objects.filter(creator = user, media_type = 5).order_by("-created_at")
                     video_feed.extend(PostSerializer(post, many = True).data)
-                    print(post)
                 except Exception as e:
-                    print(e)
                     pass
 
                 if FollowerCount.objects.filter(user = creator.user, follower = user).first():
@@ -110,9 +108,11 @@ class VideosFeed(APIView):
                         break
             
             for i in DATA:
-                if len(i['videos_url']) is 0:
+                if len(i['videos_url']) == 0:
                     DATA.remove(i)
                     continue
+                print(i)
+                i['media_type'] = 6 if i['media_type'] == 5 else 5
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
@@ -123,15 +123,8 @@ class VideosFeed(APIView):
                     i['video_url'] = i['videos_url'][0]['videos']
                     i['thumbnail'] = i['videos_url'][0]['thumbnail']
                 except Exception as e:
-                    continue
-                try:
-                    del i['videos_url']
-                except:
-                    pass
-                try:
-                    del i['image_url']
-                except:
-                    pass
+                    DATA.remove(i)
+            #FILTER 1
             for i in DATA:
                 try:
                     del i['videos_url']
@@ -141,7 +134,24 @@ class VideosFeed(APIView):
                     del i['image_url']
                 except:
                     pass
-        
+            #FILTER 2 remove none video
+            for i in DATA:
+                try:
+                    i['video_url']
+                except KeyError:
+                    DATA.remove(i)
+            #FILTER 3
+            for i in DATA:
+                try:
+                    i['image_url']
+                    del i['image_url']
+                except KeyError:
+                    pass
+                try:
+                    i['videos_url']
+                    del i['videos_url']
+                except KeyError:
+                    pass
             return Response({
                 'status':True,
                 'status_code': 200,
