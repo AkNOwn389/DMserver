@@ -21,6 +21,7 @@ python3.9 -m pip install shortuuid
 python3.9 -m pip install channels
 python3.9 -m pip install imageio
 python3.9 -m pip install pilkit
+python3.9 -m pip install dj-database-url
 python3.9 -m pip install websocket-client
 python3.9 manage.py collectstatic --noinput --clear
 echo "BUILD END"
