@@ -6,7 +6,7 @@ python3.9 manage.py collectstatic --noinput
 python3.9 -m pip install configparser
 python3.9 -m pip install -r requirements.txt
 python3.9 -m pip install daphne
-python3.9 -m pip install django
+python3.9 -m pip install Django
 python3.9 -m pip install djangorestframework-simplejwt
 python3.9 -m pip install django-cors-headers
 python3.9 -m pip install django-cloudinary-storage
