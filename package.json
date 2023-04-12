@@ -1,5 +1,0 @@
-{
-    "scripts":{
-    "start": "gunicorn core.wsgi"
-}
-}
