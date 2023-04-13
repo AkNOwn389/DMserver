@@ -4,9 +4,10 @@ from datetime import timedelta
 import os, json, sys
 import dj_database_url
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-#BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from os.path import join
+from django.core.management.utils import get_random_secret_key
 #SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key()) #Always generate
 SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY'] 
 
@@ -121,44 +122,6 @@ MESSAGES_PAGINATION = 250
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'jndduxfa',
-        'USER': 'jndduxfa',
-        'PASSWORD': 'B9FkbVHpz_x3dXiJxwI1p801rT-KY9Tj',
-        'HOST': '34.253.160.140',
-    }
-}
-
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'directmessagev2',
-        'USER': 'root',
-        'PASSWORD': '123456',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-    'read_default_file': '/platform/auth/mysql.conf',
-    'charset': 'utf8mb4',
-        },
-        'ATOMIC_REQUESTS': True,
-    }
-
-}
-
-DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-            'ATOMIC_REQUESTS': True,
-        }
-    }
 if DEVELOPMENT_MODE  is True:
     DATABASES = {
     'default': {
@@ -182,30 +145,6 @@ elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
         "default": dj_database_url.parse(os.environ.get("DATABASE_URL"),)
     }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'mydb',
-        'USER': 'myuser',
-        'PASSWORD': 'mypass',
-        'HOST': 'localhost',
-        'PORT': '',
-    }
-}
-
-    """
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'mydb',
-        'USER': 'myuser',
-        'PASSWORD': 'Patyag.work15',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
-    }
-}
-"""
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -245,12 +184,12 @@ USE_TZ = False
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = join(BASE_DIR, 'run', 'static_root')
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_DIRS = (os.path.join(BASE_DIR, 'staticfiles'),)
-MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'staticfiles'),)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
@@ -319,6 +258,4 @@ CLOUDINARY_STORAGE = {
     'API_KEY': '192628236317652',
     'API_SECRET': '67i3-1ALXcKtkr8x3ErA776EQEw'
 }
-#DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-#DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.VideoMediaCloudinaryStorage'
