@@ -24,6 +24,7 @@ python3.9 -m pip install pilkit
 python3.9 -m pip install psycopg2
 python3.9 -m pip install psycopg2-binary
 python3.9 -m pip install psycopg
+python3.9 -m pip install moviepy
 python3.9 -m pip install dj-database-url
 python3.9 -m pip install websocket-client
 python3.9 manage.py collectstatic --noinput --clear
