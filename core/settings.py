@@ -4,8 +4,8 @@ from datetime import timedelta
 import os, json, sys
 import dj_database_url
 
-#BASE_DIR = Path(__file__).resolve().parent.parent
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
+#BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from os.path import join
 from django.core.management.utils import get_random_secret_key
 #SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key()) #Always generate
