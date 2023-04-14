@@ -153,12 +153,12 @@ elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
     DATABASES = {
         "example": dj_database_url.parse(os.environ.get("DATABASE_URL"),),
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'railway',
-            'USER': 'postgres',
-            'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
-            'HOST': 'containers-us-west-109.railway.app',
-            'PORT': '6494',
+            'ENGINE':  os.getenv("DATABASE_ENGINE"),
+            'NAME':  os.getenv("PGDATABASE"),
+            'USER':  os.getenv("PGUSER"),
+            'PASSWORD': os.getenv("PGPASSWORD"),
+            'HOST': os.getenv("PGHOST"),
+            'PORT':  os.getenv("PGPORT"),
             'ATOMIC_REQUESTS': True
         }
     }
