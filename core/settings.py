@@ -12,7 +12,7 @@ from django.core.management.utils import get_random_secret_key
 SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY'] 
 
 
-DEBUG = False
+DEBUG = True
 DEVELOPMENT_MODE =  False
 
 ALLOWED_HOSTS = ['*']
@@ -121,7 +121,7 @@ DIALOGS_PAGINATION = 50
 MESSAGES_PAGINATION = 250
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
+"""
 if DEVELOPMENT_MODE  is True:
     DATABASES = {
     'old': {
@@ -175,7 +175,6 @@ DATABASES = {
         'ATOMIC_REQUESTS': True,
     }
 }
-"""
 
 
 
