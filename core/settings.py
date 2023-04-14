@@ -12,8 +12,8 @@ from django.core.management.utils import get_random_secret_key
 SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY'] 
 
 
-DEBUG = True
-DEVELOPMENT_MODE =  True
+DEBUG = False
+DEVELOPMENT_MODE =  False
 
 ALLOWED_HOSTS = ['*']
 #CSRF_TRUSTED_ORIGINS = ['*']
