@@ -1,0 +1,10 @@
+
+
+You'd need to switch your database URL in your settings file to db2 and run syncdb to create the new tables. After that the easiest thing to do imo would be to switch back to db1 and run ./manage.py dumpdata myapp > data.json, followed by another switch to db2 where you can run ./manage.py loaddata data.json.
+
+#users_in_1zone = User.objects.filter(zones__id=<id1>)
+#users_in_1zone = User.objects.filter(zones__in=[<id1>]
+#users_in_zones = User.objects.filter(zones__in=[zone1, zone2, zone3])
+#users_in_zones = User.objects.filter(zones__in=[<id1>, <id2>, <id3>])
+#python manage.py migrate --run-syncdb
+python -Xutf8 ./manage.py dumpdata > data.json

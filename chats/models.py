@@ -1,9 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Q, F
+import uuid
 
 
 class PrivateRoom(models.Model):
+    temp_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_connector')
     connected_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chatMate')
 

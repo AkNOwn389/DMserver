@@ -124,7 +124,7 @@ MESSAGES_PAGINATION = 250
 
 if DEVELOPMENT_MODE  is True:
     DATABASES = {
-    'default': {
+    'old': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'directmessagev2',
         'USER': 'root',
@@ -136,14 +136,56 @@ if DEVELOPMENT_MODE  is True:
     'charset': 'utf8mb4',
         },
         'ATOMIC_REQUESTS': True,
+    },
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
+        'HOST': 'containers-us-west-109.railway.app',
+        'PORT': '6494',
+        'ATOMIC_REQUESTS': True,
     }
 }
 elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
     if os.getenv("DATABASE_URL", None) is None:
         raise Exception("DATABASE_URL environment variable not defined")
     DATABASES = {
-        "default": dj_database_url.parse(os.environ.get("DATABASE_URL"),)
+        "example": dj_database_url.parse(os.environ.get("DATABASE_URL"),),
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'railway',
+            'USER': 'postgres',
+            'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
+            'HOST': 'containers-us-west-109.railway.app',
+            'PORT': '6494',
+            'ATOMIC_REQUESTS': True
+        }
     }
+
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
+        'HOST': 'containers-us-west-109.railway.app',
+        'PORT': '6494',
+        'ATOMIC_REQUESTS': True,
+    }
+}
+"""
+
+
+
+
+
+
+
+
+
+
 
 
 # Password validation
@@ -186,10 +228,9 @@ USE_TZ = False
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-STATIC_ROOT = join(BASE_DIR, 'run', 'static_root')
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATICFILES_DIRS = (os.path.join(BASE_DIR, 'staticfiles'),)
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT =os.path.join(BASE_DIR, 'staticfiles')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
