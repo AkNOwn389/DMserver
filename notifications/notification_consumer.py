@@ -1,7 +1,7 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import MyNotification
-from chats.models import message
+from chats.models import  PrivateMessage, RoomManager
 import json
 
 class NotificationBadgeSocket(AsyncWebsocketConsumer):
@@ -10,7 +10,7 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
         return len(notif) if len(notif) < 100 else 99
 
     def chatBadge(self, user):
-        notif = message.objects.filter(receiver = user, seen = False)
+        notif = RoomManager().get_all_unread_message(user=user)
         return len(notif) if len(notif) < 100 else 99
     
 
@@ -26,7 +26,6 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
             res = json.loads(text_data)
-            print(res)
             if res['message'] == "notificationBadgeNumber":
                 chat = await database_sync_to_async(self.chatBadge)(self.user)
                 notif = await database_sync_to_async(self.notifBadge)(self.user)

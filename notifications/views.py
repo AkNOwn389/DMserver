@@ -6,7 +6,7 @@ from .serializers import NotificationSerializer
 from profiles.serializers import ProfileSerializer
 from posts.models import Post
 from profiles.models import Profile
-from chats.models import message
+from chats.models import PrivateMessage as message
 from django.db.models import Q, F
 from users.models import FollowerCount
 from time_.get_time import getStringTime

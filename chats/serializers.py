@@ -1,4 +1,4 @@
-from .models import message
+from .models import PrivateMessage as message
 from rest_framework import serializers
 
 class MessagesSerialiser(serializers.ModelSerializer):
@@ -12,9 +12,9 @@ class MessagesSerialiser(serializers.ModelSerializer):
         )
     class Meta:
         model = message
-        fields = ['id', 'message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete']
+        fields = ['id', 'message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete', 'message_type', 'file', 'image']
 
 class MessagesSender(serializers.ModelSerializer):
     class Meta:
         model = message
-        fields = ['id', 'message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete']
+        fields = ['id', 'message_body', 'sender', 'receiver']

@@ -23,6 +23,7 @@ from django.core.files import File
 from PIL import Image
 from django.core.files.base import ContentFile
 from io import BytesIO
+import cloudinary
 
 # Create your views here.
 #class response
@@ -88,9 +89,17 @@ class DeletePost(APIView):
             try:
                 for i in posts.images_url.all():
                     img = PostImage.objects.get(id = str(i))
+                    try:
+                        cloudinary.uploader.destroy(img.public_id)
+                    except:
+                        pass
                     img.delete()
                 for i in posts.videos_url.all():
                     img = PostVideos.objects.get(id = str(i))
+                    try:
+                        cloudinary.uploader.destroy(img.public_id)
+                    except:
+                        pass
                     img.delete()
             except:
                 pass
@@ -133,8 +142,6 @@ class GetPostDataById(APIView):
 #@transaction.atomic
 class upload(APIView):
     def getType(self, request):
-        print(request.data)
-
         images= request.FILES.getlist('image',)
         videos = request.FILES.getlist('video',)
         if images == [] and videos == []:
@@ -158,7 +165,7 @@ class upload(APIView):
             user = request.user
             data = request.data
             user_profile = Profile.objects.get(user = user)
-
+            """
             if images != None:
                 for i in images:
                     y = {"image": i}
@@ -167,6 +174,7 @@ class upload(APIView):
                         pass
                     else:
                         isError = True
+                        """
                     
             if not isError:
                 try:
@@ -185,14 +193,7 @@ class upload(APIView):
                     if TYPE == 2 or TYPE == 5:
                         if images != None:
                             for i in images:
-                                print(i)
                                 postToUpload.images_url.create(image = i)
-                            for i in postToUpload.images_url.all():
-                                im = ImagePIL.open(i.image)
-                                w, h = im.size
-                                i.width = w
-                                i.heigth = h
-                                i.save()
                     if TYPE == 5:
                         for i in videos:
                             postToUpload.videos_url.create(videos = i)
@@ -250,6 +251,7 @@ class Like_Post(APIView):
             pass
         try:
             post = Post.objects.get(images_url__id=str(post_id))
+            print(post)
             return post.images_url.get(id = post_id), post
         except:
             pass
@@ -260,18 +262,17 @@ class Like_Post(APIView):
         if user.is_authenticated:
             post_id = request.data['post_id']
             post, image_id = self.GetPostData(post_id)
+            print(post, image_id)
             if post == None and image_id == None:
                 err_404['message'] == "not found"
                 return Response(err_404)
-            
-
             like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
 
             if like_filter == None:
                 new_like = LikePost.objects.create(post_id=post_id, username=user)
                 new_like.save()
-                post.NoOflike+=1
-                post.save()
+                post.NoOflike = post.NoOflike+1
+                post.update()
                 if image_id != None:
                     post_id = image_id.id
                 LikeNotificationView.saveLike(ako=request.user, postId=post_id)
@@ -281,8 +282,8 @@ class Like_Post(APIView):
                     'post_likes': post.NoOflike})
             else:
                 like_filter.delete()
-                post.NoOflike-=1
-                post.save()
+                post.NoOflike = post.NoOflike-1
+                post.update()
                 if image_id != None:
                     post_id = image_id.id
                 #LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)

@@ -1,15 +1,23 @@
 from rest_framework import serializers
 from .models import Image, Videos,  Post, LikePost, Comment
-
+import cloudinary
 class ImagesSerializer(serializers.ModelSerializer):
   class Meta:
     model = Image
-    fields = ['id', 'image', 'thumbnail', 'NoOfcomment', 'NoOflike']
+    fields = ['id', 'url', 'thumbnail', 'url_w1000', 'url_w250', 'NoOfcomment', 'NoOflike', 'width', 'height']
+  
+  def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        return rep
 
 class VideoSerializer(serializers.ModelSerializer):
   class Meta:
     model = Videos
-    fields = ['id', 'videos', 'thumbnail']
+    fields = ['id', 'original', 'url_w1000', 'url_w500', 'url_w250', 'playback_url', 'width', 'height']
+
+  def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        return rep
 
 class PostUploader(serializers.ModelSerializer):
   class Meta:

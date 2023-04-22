@@ -4,10 +4,12 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
-from.models import  message
+from.models import PrivateMessage as message
 from .serializers import MessagesSerialiser, MessagesSender
 from authenticator.isAuth import AuthUser
 from django.db.models import Q
+from .managers import MessageManager
+from django.contrib.auth.models import AbstractBaseUser
 
 # Create your views here.
 data = {'status': True, 'status_code': 200, 'message': 'success'}
@@ -35,26 +37,18 @@ class MessagePageView(APIView):
     def get(self, request, page):
         if AuthUser(request):
             limit = page*16
-            messages = message.objects.filter(Q(sender = request.user) | Q(receiver = request.user)).order_by("-date_time")
-            msg_lists = []
-            msg = []
-            for x in messages:
-                y = x.sender if x.receiver == request.user else x.receiver
-                if y not in msg:
-                    msg.append(y)
-                    msg_lists.append(x)
-
-
+            user:AbstractBaseUser = request.user
+            msg_lists = MessageManager().getMainPageView(user=user)
             c = MessagesSerialiser(msg_lists[int(limit)-16:int(limit)], many=True)
             for i in c.data:
-                i['username'] = i['receiver'] if i['sender'] == request.user.username else i['sender']
+                i['username'] = i['receiver'] if i['sender'] == user.username else i['sender']
                 i['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = i['sender'])).name
                 i['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = i['receiver'])).name
                 i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['username'])).name
                 i['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = i['username']))).data['profileimg']
-                i['message_lenght'] = len(message.objects.filter(sender = User.objects.get(username = i['username']), receiver = request.user))
+                i['message_lenght'] = len(message.objects.filter(sender = User.objects.get(username = i['username']), receiver = user))
                 i['type'] = 1
-                if i['sender'] == request.user.username:
+                if i['sender'] == user.username:
                     i['message_body'] = f"You: {i['message_body']}"
             has_more_page = False
             if len(c.data) == 16:

@@ -43,7 +43,10 @@ class newsfeed(APIView):
             for i in y.data:
                 if len(i['image_url']) == 0 and len(i['videos_url']) == 1:
                     i['media_type'] = 6
-                    i['videos'] = i['videos_url'][0]['videos']
+                    i['videos'] = i['videos_url'][0]['url_w500']
+                    i['url_w1000'] = i['videos_url'][0]['url_w1000']
+                    i['url_w250'] = i['videos_url'][0]['url_w250']
+                    i['playback_url'] = i['videos_url'][0]['playback_url']
                     del i['image_url']
                     del i['videos_url']
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])

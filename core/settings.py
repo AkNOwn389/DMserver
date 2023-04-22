@@ -13,11 +13,11 @@ SECRET_KEY = json.loads(open("secretKey.json").read())['SECRET_KEY']
 
 
 DEBUG = True
-DEVELOPMENT_MODE =  False
+DEVELOPMENT_MODE = True
 
 ALLOWED_HOSTS = ['*']
-#CSRF_TRUSTED_ORIGINS = ['*']
-#CORS_ORIGIN_WHITELIST = ['*']
+#CSRF_TRUSTED_ORIGINS = []
+#CORS_ORIGIN_WHITELIST = []
 
 INSTALLED_APPS = [
     'daphne',
@@ -46,7 +46,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,6 +71,7 @@ CACHES = {
         'KEY_PREFIX': 'django_mail_admin',
     }
 }
+
 
 TEMPLATES = [
     {
@@ -102,7 +102,7 @@ LOGGING = {
 
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
-"""
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -111,20 +111,26 @@ CHANNEL_LAYERS = {
         },
     },
 }
-"""
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
 DIALOGS_PAGINATION = 50
 MESSAGES_PAGINATION = 250
+PAGE_LIMIT = 16
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 """
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
+        'HOST': 'containers-us-west-109.railway.app',
+        'PORT': '6494',
+        'ATOMIC_REQUESTS': True,
+    }
+"""
 if DEVELOPMENT_MODE  is True:
     DATABASES = {
-    'old': {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'directmessagev2',
         'USER': 'root',
@@ -137,16 +143,8 @@ if DEVELOPMENT_MODE  is True:
         },
         'ATOMIC_REQUESTS': True,
     },
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
-        'HOST': 'containers-us-west-109.railway.app',
-        'PORT': '6494',
-        'ATOMIC_REQUESTS': True,
-    }
 }
+    """
 elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
     if os.getenv("DATABASE_URL", None) is None:
         raise Exception("DATABASE_URL environment variable not defined")
@@ -162,19 +160,7 @@ elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
             'ATOMIC_REQUESTS': True
         }
     }
-
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'NIj2ojUWaWaIJUeLPTzG',
-        'HOST': 'containers-us-west-109.railway.app',
-        'PORT': '6494',
-        'ATOMIC_REQUESTS': True,
-    }
-}
+    """
 
 
 
@@ -298,4 +284,5 @@ CLOUDINARY_STORAGE = {
     'API_KEY': '192628236317652',
     'API_SECRET': '67i3-1ALXcKtkr8x3ErA776EQEw'
 }
+
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
