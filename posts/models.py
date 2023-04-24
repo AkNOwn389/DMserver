@@ -15,6 +15,7 @@ import cloudinary, json, datetime
 from typing import Optional, Iterable
 from cloudinary import CloudinaryImage, CloudinaryVideo, CloudinaryResource
 from cloudinary.utils import cloudinary_url
+from chats.models import UploadedFile
 
 
 def getAssetInfo(public_id):
@@ -299,8 +300,8 @@ class Comment(models.Model):
     post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    image = models.ImageField(blank=True, storage=MediaCloudinaryStorage())
-    type = models.IntegerField(blank=False, default=1)
+    file = models.ManyToManyField(UploadedFile, blank=True)
+    comment_type = models.IntegerField(blank=False, default=1)
     comments = models.TextField(max_length=1500)
     created = models.DateTimeField(auto_now_add=True)
     NoOflike = models.IntegerField(default=0)

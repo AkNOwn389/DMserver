@@ -10,7 +10,8 @@ from authenticator.isAuth import AuthUser
 from django.db.models import Q
 from .managers import MessageManager
 from django.contrib.auth.models import AbstractBaseUser
-
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 # Create your views here.
 data = {'status': True, 'status_code': 200, 'message': 'success'}
 success = {"status": True, "status_code": 200}
@@ -113,6 +114,15 @@ class sendmessage(APIView):
         self.success['data']['me'] = True
 
         return Response(self.success)
+    
+    """
+    channel_layer = get_channel_layer()
+
+async_to_sync(channel_layer.group_add)(
+    'room_name',
+    'channel_name'
+)
+    """
     
     def post(self, request):
         if request.user.is_authenticated:

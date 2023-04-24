@@ -18,6 +18,7 @@ class UploadedFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Uploaded_by"),related_name='+', db_index=True)
     file = models.FileField(verbose_name=_("File"), blank=False, null=False, upload_to=user_directory_path)
+    file_type = models.IntegerField(default=1)
     upload_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Upload date"))
     def __str__(self):
         return str(self.file.name)

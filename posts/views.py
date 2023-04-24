@@ -24,6 +24,8 @@ from PIL import Image
 from django.core.files.base import ContentFile
 from io import BytesIO
 import cloudinary
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # Create your views here.
 #class response
