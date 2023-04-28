@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 
 
 
@@ -44,12 +44,15 @@ def calCulateDate(date__):
                 return str(day)
 
 
-def getStringTime(time):
-    dateNow = datetime.now()
-    timeNow = str(dateNow).split()[1]
-    date_time = str(time).split("T")
-    date_ = date_time[0]
-    time_ = date_time[1].split(':')
+def getStringTimeold(time):
+    try:
+        dateNow = datetime.now()
+        timeNow = str(dateNow).split()[1]
+        date_time = str(time).split("T")
+        date_ = date_time[0]
+        time_ = date_time[1].split(':')
+    except:
+        return time
     if date_ == str(date.today()):
         if time_[0] == str(timeNow).split(":")[0]:
             if int(str(timeNow).split(":")[1]) -int(time_[1]) < 10:
@@ -69,3 +72,45 @@ def getStringTime(time):
         oras = "pm"
         hour = str(int(time_[0]) -12)
     return f"{theTime} {hour}:{time_[1]}{oras}"
+
+
+
+def getStringTime(date:str) -> str:
+    try:
+        date:datetime = datetime.fromisoformat(date.replace('Z', '+00:00'))
+    except ValueError:
+        return date
+    now:datetime = datetime.now(timezone.utc)
+    date:datetime = date.astimezone(now.tzinfo)
+    diff:timedelta = now - date
+    if diff.days >= 365:
+        years = diff.days // 365
+        if years > 1:
+            return f'{years} years ago'
+        else:
+            return f'{years} year ago'
+    elif diff.days >= 30:
+        months = diff.days // 30
+        if months > 1:
+            return f'{months} months ago'
+        else:
+            return f'{months} month ago'
+    elif diff.days >= 7:
+        weeks = diff.days // 7
+        if weeks > 1:
+            return f'{weeks} weeks ago'
+        else:
+            return f'{weeks} week ago'
+    elif diff.days > 0:
+        day = diff.days
+        return f'{diff.days}d'
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f'{hours}h'
+    elif diff.seconds > 60:
+        minute = diff.seconds // 60
+        return f'{minute}m'
+    elif diff.seconds < 60 and diff.seconds > 15:
+        return f'{diff.seconds}s'
+    else:
+        return 'just now'

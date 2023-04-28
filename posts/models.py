@@ -15,7 +15,6 @@ import cloudinary, json, datetime
 from typing import Optional, Iterable
 from cloudinary import CloudinaryImage, CloudinaryVideo, CloudinaryResource
 from cloudinary.utils import cloudinary_url
-from chats.models import UploadedFile
 
 
 def getAssetInfo(public_id):
@@ -255,7 +254,7 @@ class Videos(models.Model):
             pass
         try:
             video = CloudinaryVideo(self.public_id)
-            thumbnail_url = video.build_url(transformation=[{'width': 300, 'height': 300, 'crop': 'scale'}], format='jpg')
+            thumbnail_url = video.build_url(transformation=[{'quality': "auto"},{'width': 1000, 'crop': 'scale'}], format='jpg')
             self.thumbnail = thumbnail_url
         except Exception as e:
             print(f"Exception: {e}")
@@ -296,11 +295,40 @@ class Post(models.Model):
     def update(self, *args, **kwargs):
         super(Post, self).save(*args, **kwargs)
 
+
+class SharePost(models.Model):
+    class privacy_choice(models.TextChoices):
+        Public = 'P', _('Public')
+        Friends = 'F', _('Friends')
+        OnlyMe = 'O', _('Only-Me')
+        
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    postToShare = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_to_share')
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='share_post_creator')
+    creator_full_name = models.TextField(max_length=200)
+    description = models.TextField(blank=True)
+    title = models.TextField(blank=True)
+    privacy = models.CharField(choices=privacy_choice.choices, default=privacy_choice.Friends, max_length=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    NoOflike = models.IntegerField(default=0)
+    NoOfcomment = models.IntegerField(default=0)
+    media_type = models.IntegerField(default=1)
+    class Meta:
+        ordering = ["-created_at"]
+        
+    def __str__(self):
+        return str(self.creator)+" "+str(self.description)
+    
+    def update(self, *args, **kwargs):
+        super(Post, self).save(*args, **kwargs)
+
+
 class Comment(models.Model):
     post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.ManyToManyField(UploadedFile, blank=True)
+    image = models.ManyToManyField(Image, blank=True)
+    video = models.ManyToManyField(Videos, blank=True)
     comment_type = models.IntegerField(blank=False, default=1)
     comments = models.TextField(max_length=1500)
     created = models.DateTimeField(auto_now_add=True)

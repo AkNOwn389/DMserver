@@ -12,7 +12,7 @@ class MessagesSerialiser(serializers.ModelSerializer):
         )
     class Meta:
         model = message
-        fields = ['id', 'message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete', 'message_type', 'file', 'image']
+        fields = ['id', 'message_body', 'sender', 'receiver', 'date_time', 'seen', 'is_delete', 'message_type', 'file', 'image', 'video']
 
 class MessagesSender(serializers.ModelSerializer):
     class Meta:

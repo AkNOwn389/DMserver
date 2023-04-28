@@ -8,6 +8,7 @@ from profiles.views import getAvatarByUsername
 from time_.get_time import getStringTime
 from users.views import isFollowed, isFollower
 from profiles.serializers import ProfileSerializer
+from django.contrib.auth.models import AbstractBaseUser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -16,6 +17,7 @@ from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos as PostVideos
 from django.db.models import Q, F
+from news.models import News
 from PIL import Image as ImagePIL, ImageFile
 from django.db import transaction
 from io import BytesIO, StringIO
@@ -26,6 +28,7 @@ from io import BytesIO
 import cloudinary
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import enum
 
 # Create your views here.
 #class response
@@ -46,6 +49,13 @@ err_413 = {"status": False, "status_code": 413}
 err_414 = {"status": False, "status_code": 414}
 err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
+
+class PostType(enum.StrEnum):
+        POST = "posts"
+        NEWSPOST = "news"
+        POSTIMAGE = "postImage"
+        VIDEO = "videos"
+
 
 class ChangePrivacy(APIView):
     def get(self, request, id, privacy):
@@ -202,7 +212,10 @@ class upload(APIView):
                     postToUpload.save()
                 except Exception as e:
                     print(e)
-                    #postToUpload.delete()
+                    try:
+                        Post.objects.get(id = postToUpload.id).delete()
+                    except:
+                        pass
                     return Response({
                         'status': False,
                         'status_code': 403,
@@ -245,54 +258,111 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': True})
 
 class Like_Post(APIView):
-    def GetPostData(self, post_id):
+    
+    def GetPostData(self, post_id, post_type):
+        if post_type == PostType.POST:
+            try:
+                print("Post method call")
+                post = Post.objects.get(id=post_id)
+                return post
+            except Post.DoesNotExist:
+                return None
+            
+        elif post_type == PostType.NEWSPOST:
+            try:
+                print("news post method call")
+                post =  News.objects.get(id = post_id)
+                return post
+            except News.DoesNotExist:
+                return None
+            
+        elif post_type == PostType.POSTIMAGE:
+            try:
+                print("post image method call")
+                post = Post.objects.get(images_url__id=str(post_id))
+                return post.images_url.get(id = post_id)
+            except Post.DoesNotExist:
+                return None
+            
+
+        elif post_type == PostType.VIDEO:
+            try:
+                print("video  method call")
+                post = Post.objects.get(id=post_id)
+                return post
+            except Post.DoesNotExist:
+                return None
+            
+        else:
+            return None
+        
+    def AddToPost(self, post) -> int:
         try:
-            post = Post.objects.get(id=post_id)
-            return post, None
+            post.NoOflike = post.NoOflike+1
+            post.update()
+            return post.NoOflike
         except:
             pass
         try:
-            post = Post.objects.get(images_url__id=str(post_id))
-            print(post)
-            return post.images_url.get(id = post_id), post
+            post.noOfLike = post.noOfLike+1
+            post.save()
+            return post.noOfLike
         except:
             pass
 
-        return None, None
+
+    def MinusToPost(self, post):
+        try:
+            post.NoOflike = post.NoOflike-1
+            post.update()
+            return post.NoOflike
+        except:
+            pass
+        try:
+            post.noOfLike = post.noOfLike-1
+            post.save()
+            return post.noOfLike
+        except:
+            pass
+
     def post(self, request):
-        user = request.user
+        user:AbstractBaseUser = request.user
         if user.is_authenticated:
-            post_id = request.data['post_id']
-            post, image_id = self.GetPostData(post_id)
-            print(post, image_id)
-            if post == None and image_id == None:
+
+            try:
+                post_id = request.data['post_id']
+                post_type = request.data['postType']
+            except KeyError:
+                err_403['message'] == "keyError"
+                return Response(err_403)
+            post = self.GetPostData(post_id, post_type)
+            print(post)
+            if post == None:
                 err_404['message'] == "not found"
                 return Response(err_404)
+            
             like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
 
             if like_filter == None:
                 new_like = LikePost.objects.create(post_id=post_id, username=user)
                 new_like.save()
-                post.NoOflike = post.NoOflike+1
-                post.update()
-                if image_id != None:
-                    post_id = image_id.id
-                LikeNotificationView.saveLike(ako=request.user, postId=post_id)
+                newLikeNumber = self.AddToPost(post=post)
+                if post_type != PostType.NEWSPOST:
+                    LikeNotificationView.saveLike(ako=user, postId=post_id)
+                print(newLikeNumber)
                 return JsonResponse({
                     'status': True,
                     'message': 'post like',
-                    'post_likes': post.NoOflike})
+                    'post_likes': newLikeNumber})
             else:
                 like_filter.delete()
-                post.NoOflike = post.NoOflike-1
-                post.update()
-                if image_id != None:
-                    post_id = image_id.id
+                newLikeNumber = self.MinusToPost(post=post)
+                print(newLikeNumber)
                 #LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
                 return JsonResponse({
                     'status': True,
                     'message': 'post unlike',
-                    'post_likes': post.NoOflike})
+                    'post_likes': newLikeNumber})
             
 class MyPostListView(APIView):
     success = {'status': True,'status_code': 200, 'message': 'success'}

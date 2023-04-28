@@ -10,6 +10,7 @@ urlpatterns = [
     path('feed/', include('feeds.urls')),
     path('chat/', include('chats.urls')),
     path('user/', include('users.urls')),
+    path('news/', include('news.urls')),
     path('notification/', include('notifications.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

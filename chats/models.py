@@ -6,8 +6,11 @@ from django.contrib.auth.models import AbstractBaseUser
 import uuid, random
 from django.conf import settings
 from typing import Optional, Any
+from posts.models import Image as ImageUpload, Videos as VideoUpload
+from cloudinary_storage.storage import MediaCloudinaryStorage, VideoMediaCloudinaryStorage, RawMediaCloudinaryStorage
+from cloudinary.models import CloudinaryField
 from django.utils.translation import gettext_lazy as _
-
+from cloudinary.utils import cloudinary_url
 
 def user_directory_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
@@ -16,12 +19,18 @@ def user_directory_path(instance, filename):
 
 class UploadedFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    public_id = models.TextField(blank=False, null=False, default="null")
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Uploaded_by"),related_name='+', db_index=True)
-    file = models.FileField(verbose_name=_("File"), blank=False, null=False, upload_to=user_directory_path)
+    file = CloudinaryField("file", resource_type = "file", folder = "uploadFile/")
     file_type = models.IntegerField(default=1)
     upload_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Upload date"))
     def __str__(self):
-        return str(self.file.name)
+        return str(self.id)
+    
+    def save(self, *args, **kwargs) -> None:
+        upload_result = cloudinary_url.uploader.upload(self.file, resource_type="auto")
+        self.public_id = upload_result['public_id']
+        return super(UploadedFile, self).save(*args, **kwargs)
 
 class PrivateRoom(models.Model):
     user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_connector', null=False)
@@ -69,8 +78,9 @@ class PrivateMessage(models.Model):
         User, on_delete=models.CASCADE, related_name="msg_sender")
     receiver = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="msg_receiver")
-    file = models.FileField(upload_to=user_directory_path, blank=True)
-    image = models.ImageField(upload_to=user_directory_path, blank=True)
+    file = models.ManyToManyField(UploadedFile, blank=True)
+    image = models.ManyToManyField(ImageUpload, blank=True)
+    video = models.ManyToManyField(VideoUpload, blank=True)
     date_time = models.DateTimeField(auto_now_add=True)
     message_type = models.IntegerField(default=1)
     is_delete = models.BooleanField(default=False)

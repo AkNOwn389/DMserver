@@ -14,6 +14,7 @@ from django.conf import settings
 from datetime import timedelta
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AbstractBaseUser
 from rest_framework_simplejwt.exceptions import TokenError
 from notifications.views import FollowNotificationView
 from django.db.models import Q
@@ -47,23 +48,20 @@ err_416 = {"status": False, "status_code": 416}
 
 
 
-def isFollowed(me, username):
+def isFollowed(me:AbstractBaseUser, username) -> bool:
     try:
         a = User.objects.get(username = username)
-        b = FollowerCount.objects.get(user = a, follower = me)
-        return True
+        return FollowerCount.objects.filter(user = a, follower = me).exists()
     except:
         return False
-def isFollower(me, username):
+def isFollower(me:AbstractBaseUser, username) -> bool:
     try:
         a = User.objects.get(username = username)
-        b = FollowerCount.objects.get(user = me, follower = a)
-        return True
+        return FollowerCount.objects.filter(user = me, follower = a).exists()
     except:
         return False
     
-def isOnline(user=None, username = None):
-    
+def isOnline(user=None, username = None) -> bool:
     if user == None:
         try:
             user = User.objects.get(username = username)
@@ -93,6 +91,29 @@ class WhoAmI(APIView):
                                 "message":"ok",
                                 "id": None,
                                 "username": None})
+class BahaviorLoginEvent(APIView):
+    def get(self, request):
+        user = request.user
+        try:
+            if user.is_authenticated:
+                User.objects.filter(user = user).first().update(last_login = timezone.now())
+                return JsonResponse({"status":True,
+                                    "status_code": 0,
+                                    "message":"ok",
+                                    "id":str(user.id),
+                                    "username": str(user.username)})
+            else:
+                return JsonResponse({"status":False,
+                                    "status_code": 401,
+                                    "message":"ok",
+                                    "id": None,
+                                    "username": None})
+        except Exception as e:
+            return JsonResponse({"status":False,
+                                    "status_code": 403,
+                                    "message":str(e),
+                                    "id": None,
+                                    "username": None})
 
 class user_suggested(APIView):
     def get(self, request, page):

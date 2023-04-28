@@ -26,8 +26,6 @@ class CommentTypes(enum.IntEnum):
 
 class CommentTypesCommentMessage(TypedDict):
     comment: str
-    post_id: str
-
 # class OutgoingEventBase(TypedDict):
 #
 

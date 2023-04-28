@@ -11,15 +11,12 @@ from .models import  PrivateRoom, RoomManager
 from .managers import MessageManager
 from asgiref.sync import sync_to_async
 from django.db.models import Q
-from .db_operations import get_unread_count, get_file_by_id, get_message_by_id, \
-    save_file_message, save_text_message, mark_message_as_read
+from .db_operations import get_unread_count, get_file_by_id, save_text_message, mark_message_as_read, get_serialize_profile, get_user_profile, get_user_by_pk, serializeMessage
 from .errors import ErrorTypes
 from .models import PrivateMessage as UserMessage
-from .message_types import MessageTypeFileMessage, MessageTypeMessageRead, MessageTypes, \
-MessageTypeTextMessage, Optional, OutgoingEventIsTyping, OutgoingEventMessageRead,\
-OutgoingEventNewFileMessage, OutgoingEventNewTextMessage, OutgoingEventStoppedTyping,\
-ChatPageTypes, UpdatePageEvents
+from .message_types import MessageTypeFileMessage, MessageTypeMessageRead, MessageTypes,MessageTypeTextMessage, Optional, OutgoingEventIsTyping, OutgoingEventMessageRead,OutgoingEventStoppedTyping, ChatPageTypes
 from chats.models import RoomManager
+from time_.get_time import getStringTime
 from .errors import ErrorTypes, ErrorDescription
 from django.conf import settings
 import logging
@@ -30,44 +27,31 @@ ERROR_404 = 404
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
-	def SocksUser(self, user, chatMate):
+	def SocksUser(self, user:AbstractBaseUser, chatMate:str):
 		self.connected = False
 		try:
 			user2 = User.objects.get(username = chatMate)
 		except User.DoesNotExist:
-			self.connected
+			return None
+		if user.username == chatMate:
 			return None
 		self.connected = True
 		self.chatMate = user2
 		return RoomManager().getOrCreateOneToOneRoom(user1=user, user2=user2).encode('utf-8').decode()
+	
 	def getProfile(self, user):
 		return ProfileSerializer(Profile.objects.get(user = user)).data
 	
 	def getMessagePagination(self, page:int, user1:AbstractBaseUser, user2:AbstractBaseUser):
 		messages = RoomManager().getMessagePagination(page=page, user1=user1, user2=user2)
 		serializeMessage = MessagesSerialiser(messages, many = True)
-		for i in serializeMessage.data:
-			i.update(self.getMessageData(i))
 		return serializeMessage.data
-	
-	def getMessageData(self, event:dict):
-		user:AbstractBaseUser = self.user
-		event['username'] = event['receiver'] if event['sender'] == self.user.username else event['sender']
-		event['sender_full_name'] = Profile.objects.get(user = User.objects.get(username = event['sender'])).name
-		event['receiver_full_name'] = Profile.objects.get(user = User.objects.get(username = event['receiver'])).name
-		event['user_full_name'] = Profile.objects.get(user = User.objects.get(username = event['username'])).name
-		event['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = event['username']))).data['profileimg']
-		event['message_lenght'] = len(UserMessage.objects.filter(sender = User.objects.get(username = event['username']), receiver = self.user))
-		event['type'] = 1
-		if event['sender'] == user.username:
-			event['message_body'] = f"You: {event['message_body']}"
-		return event
-	
-	def createTextMessage(self, creator:AbstractBaseUser, receiver:AbstractBaseUser, message:str):
+
+	def createTextMessage(self, creator:AbstractBaseUser, receiver:AbstractBaseUser, message:str) -> dict:
 		msg = UserMessage.objects.create(sender = creator, receiver = receiver, message_body = message)
 		msg.save()
 		serializeMessage =  MessagesSerialiser(msg)
-		return self.getMessageData(serializeMessage.data)
+		return serializeMessage.data
 	
 	async def connect(self):
 		self.user:AbstractBaseUser = self.scope['user']
@@ -78,15 +62,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			room = await database_sync_to_async(self.SocksUser)(self.user, self.user2)
 			if self.connected == True:
 				print(f"{self.user} connected in: {self.chatMate}")
-				self.room = room
 				await self.accept()
+				self.room = room
 				await self.channel_layer.group_add(self.room, self.channel_name)
 				userProfile = await sync_to_async(self.getProfile)(self.user)
 				chatMateProfile = await sync_to_async(self.getProfile)(self.chatMate)
 				text = {
 					'status': True,
 					'status_code': 200,
-					'type': 0,
+					'type': "handshake",
 					'message': f'connected to {self.user2}',
 					'data': {
 					'username': self.user.username,
@@ -112,7 +96,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		
 
 	async def disconnect(self, close_code):
-		print(f"{self.user} is disconnected with close code of {close_code}")
+		try:
+			print(f"{self.user} is disconnected in {self.chatMate} with close code of {close_code}")
+			await self.channel_layer.group_discard(self.room, self.channel_name)
+		except Exception as e:
+			print(f"Exception call in disconnect: {e}")
 
 	async def handle_received_message(self, message_type: MessageTypes, data: Dict[str, str]) -> Optional[ErrorDescription]:
 		logger.info(f"Received message type {message_type.name} from user {self.user} with data {data}")
@@ -125,10 +113,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 				f"User {self.user.username} has stopped typing, sending 'stopped_typing' to {self.room}")
 			await self.channel_layer.group_send(str(self.room), OutgoingEventStoppedTyping(user_pk=str(self.user.username))._asdict())
 			return None
-		elif message_type == MessageTypes.FileMessage:
-			data: MessageTypeFileMessage
-			if 'file_id' not in data:
-				pass
 		elif message_type == MessageTypes.TextMessage:
 			data: MessageTypeTextMessage
 			if 'message_body' not in data:
@@ -142,10 +126,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			else:
 				text = data['message_body']
 				print(f"Validation passed, sending text message from {self.user} to {self.chatMate}")
+
+
 			print(f"Will save text message from {self.user} to {self.chatMate}")
-			data = await database_sync_to_async(self.createTextMessage)(self.user, self.chatMate, text)
-			print(f"sending {data} in room:{self.room}")
-			await self.channel_layer.group_send(self.room, data)
+			data:UserMessage = await save_text_message(message = text, from_ = self.user, to = self.chatMate)
+			message = await serializeMessage(data)
+			message['date_time'] = getStringTime(message['date_time'])
+			message['type'] = "new_message"
+			print(f"sending {message} in room:{self.room}")
+			await self.channel_layer.group_send(self.room, message)
 			
 # Receive message from WebSocket
 
@@ -177,7 +166,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			logger.info(f"Will send error {error_data} to {self.room}")
 			await self.send(text_data=json.dumps(error_data))
 
-
+	async def new_message(self, event:dict):
+		await self.send(text_data=json.dumps(event))
 
 class MessagePageView(AsyncWebsocketConsumer):
 	async def connect(self):

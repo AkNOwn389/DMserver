@@ -1,7 +1,10 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import MyNotification
+from django.contrib.auth.models import AbstractBaseUser
 from chats.models import  PrivateMessage, RoomManager
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import json
 
 class NotificationBadgeSocket(AsyncWebsocketConsumer):

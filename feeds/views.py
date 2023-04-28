@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
 from django.http import JsonResponse
 from django.db.models import Q
-from datetime import datetime
+
 # Create your views here.
 
 
@@ -47,8 +47,12 @@ class newsfeed(APIView):
                     i['url_w1000'] = i['videos_url'][0]['url_w1000']
                     i['url_w250'] = i['videos_url'][0]['url_w250']
                     i['playback_url'] = i['videos_url'][0]['playback_url']
+                    i['thumbnail'] = i['videos_url'][0]['thumbnail']
+                    i['width'] = i['videos_url'][0]['width']
+                    i['height'] = i['videos_url'][0]['height']
                     del i['image_url']
                     del i['videos_url']
+
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
@@ -114,7 +118,6 @@ class VideosFeed(APIView):
                 if len(i['videos_url']) == 0:
                     DATA.remove(i)
                     continue
-                print(i)
                 i['media_type'] = 6 if i['media_type'] == 5 else 5
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
@@ -123,8 +126,13 @@ class VideosFeed(APIView):
                 i['me'] = True if i['creator'] == request.user.username else False
                 i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
                 try:
-                    i['video_url'] = i['videos_url'][0]['videos']
+                    i['video_url'] = i['videos_url'][0]['url_w1000']
                     i['thumbnail'] = i['videos_url'][0]['thumbnail']
+                    i['width'] = i['videos_url'][0]['width']
+                    i['height'] = i['videos_url'][0]['height']
+                    i['url_w500'] = i['videos_url'][0]['url_w500']
+                    i['url_w250'] = i['videos_url'][0]['url_w250']
+                    i['playback_url'] = i['videos_url'][0]['playback_url']
                 except Exception as e:
                     DATA.remove(i)
             #FILTER 1
@@ -185,3 +193,7 @@ class MyPostView(APIView):
             return JsonResponse(data=self.data)
         return JsonResponse(self.err)
 
+class NewsView(APIView):
+    def get(self, request):
+        if request.user.is_authenticated:
+            pass

@@ -50,7 +50,7 @@ class ChatPageTypes(enum.IntEnum):
 #
 
 class OutgoingEventMessageRead(NamedTuple):
-    message_id: int
+    id: int
     sender: str
     type: str = "message_read"
 
@@ -60,70 +60,6 @@ class OutgoingEventMessageRead(NamedTuple):
             "message_id": self.message_id,
             "sender": self.sender,
         })
-
-class UpdatePageEvents(NamedTuple):
-    page:int
-    def to_json(self) -> str:
-        return json.dumps({
-            "page":self.page
-        })
-
-class OutgoingEventNewTextMessage(NamedTuple):
-    id: int
-    username: str
-    message_body: str
-    sender: str
-    receiver: str
-
-    def to_json(self) -> str:
-        return json.dumps({
-            "message_type": MessageTypes.TextMessage,
-            "id": self.id,
-            "message_body": self.message_body,
-            "sender": self.sender,
-        })
-
-
-class OutgoingEventNewFileMessage(NamedTuple):
-    id: int
-    file: str
-    sender: str
-    message_type: int = MessageTypes.MessageRead
-
-    def to_json(self) -> str:
-        return json.dumps({
-            "message_type": self.message_type,
-            "db_id": self.id,
-            "file": self.file,
-            "sender": self.sender,
-        })
-
-
-class OutgoingEventNewUnreadCount(NamedTuple):
-    sender: str
-    unread_count: int
-    type: str = "new_unread_count"
-
-    def to_json(self) -> str:
-        return json.dumps({
-            "message_type": MessageTypes.NewUnreadCount,
-            "sender": self.sender,
-            "unread_count": self.unread_count,
-        })
-
-
-class OutgoingEventMessageIdCreated(NamedTuple):
-    id: int
-    db_id: int
-    type: str = "message_id_created"
-
-    def to_json(self) -> str:
-        return json.dumps({
-            "message_type": MessageTypes.MessageIdCreated,
-            "id": self.id,
-            "db_id": self.db_id,
-        })
-
 
 class OutgoingEventIsTyping(NamedTuple):
     user_pk: str

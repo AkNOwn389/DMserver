@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Image, Videos,  Post, LikePost, Comment
+from django.contrib.auth.models import User
 import cloudinary
 class ImagesSerializer(serializers.ModelSerializer):
   class Meta:
@@ -13,7 +14,7 @@ class ImagesSerializer(serializers.ModelSerializer):
 class VideoSerializer(serializers.ModelSerializer):
   class Meta:
     model = Videos
-    fields = ['id', 'original', 'url_w1000', 'url_w500', 'url_w250', 'playback_url', 'width', 'height']
+    fields = ['id', 'original', 'url_w1000', 'url_w500', 'url_w250', 'thumbnail', 'playback_url', 'width', 'height']
 
   def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -45,6 +46,7 @@ class LikesPostSerializer(serializers.ModelSerializer):
     model = LikePost
     fields = ['post_id', 'username']
 
+from profiles.serializers import ProfileSerializer, Profile
 class PostCommentSerializer(serializers.ModelSerializer):
   user = serializers.SlugRelatedField(
     read_only = True,
@@ -52,4 +54,10 @@ class PostCommentSerializer(serializers.ModelSerializer):
   )
   class Meta:
     model = Comment
-    fields = ['id', 'post_id', 'image', 'avatar', 'user', 'comments', 'created', 'type', 'NoOflike']
+    fields = ['id', 'post_id', 'image', 'video', 'avatar', 'user', 'comments', 'created', 'comment_type', 'NoOflike']
+  
+  def to_representation(self, instance):
+     rep = super().to_representation(instance)
+     profile = ProfileSerializer(Profile.objects.get(user = instance.user)).data
+     rep['avatar'] = profile['profileimg']
+     return rep

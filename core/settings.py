@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'feeds',
     'chats',
     'posts',
+    'news',
 ]
 
 MIDDLEWARE = [
@@ -203,7 +204,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -284,5 +285,7 @@ CLOUDINARY_STORAGE = {
     'API_KEY': '192628236317652',
     'API_SECRET': '67i3-1ALXcKtkr8x3ErA776EQEw'
 }
+
+NEWS_API_KEY = "010922d0ff0f42b8afa7ffcd0ed348db"
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
