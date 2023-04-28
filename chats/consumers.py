@@ -83,7 +83,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 				}
 				text['chatmate'].update(chatMateProfile)
 				text['data'].update(userProfile)
-				print(f"sending data in {self.user}:data:{text}")
 				await self.send(text_data = json.dumps(text))
 
 			else:
@@ -106,12 +105,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		logger.info(f"Received message type {message_type.name} from user {self.user} with data {data}")
 		if message_type == MessageTypes.IsTyping:
 			print(f"User {self.user.username} is typing, sending 'is_typing' to {self.room}")
-			await self.channel_layer.group_send(str(self.room), OutgoingEventIsTyping(user_pk=str(self.user.username))._asdict())
+			await self.channel_layer.group_send(str(self.room), OutgoingEventIsTyping(user=str(self.user.username))._asdict())
 			return None
 		elif message_type == MessageTypes.TypingStopped:
 			print(
 				f"User {self.user.username} has stopped typing, sending 'stopped_typing' to {self.room}")
-			await self.channel_layer.group_send(str(self.room), OutgoingEventStoppedTyping(user_pk=str(self.user.username))._asdict())
+			await self.channel_layer.group_send(str(self.room), OutgoingEventStoppedTyping(user=str(self.user.username))._asdict())
 			return None
 		elif message_type == MessageTypes.TextMessage:
 			data: MessageTypeTextMessage
@@ -168,6 +167,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 	async def new_message(self, event:dict):
 		await self.send(text_data=json.dumps(event))
+
+	async def stopped_typing(self, event:dict):
+		print(event)
+		await self.send(text_data=OutgoingEventStoppedTyping(**event).to_json())
+	
+	async def is_typing(self, event:dict):
+		print(event)
+		await self.send(text_data=OutgoingEventIsTyping(**event).to_json())
 
 class MessagePageView(AsyncWebsocketConsumer):
 	async def connect(self):

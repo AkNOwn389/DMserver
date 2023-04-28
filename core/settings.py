@@ -287,5 +287,6 @@ CLOUDINARY_STORAGE = {
 }
 
 NEWS_API_KEY = "010922d0ff0f42b8afa7ffcd0ed348db"
+NEWS_API_KEY2 = "60c22c7d0eab4637b6263b1b84067351"
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

@@ -62,22 +62,24 @@ class OutgoingEventMessageRead(NamedTuple):
         })
 
 class OutgoingEventIsTyping(NamedTuple):
-    user_pk: str
+    user: str
     type: str = "is_typing"
 
     def to_json(self) -> str:
         return json.dumps({
+            "type": self.type,
             "message_type": MessageTypes.IsTyping,
-            "user_pk": self.user_pk
+            "user": self.user
         })
 
 
 class OutgoingEventStoppedTyping(NamedTuple):
-    user_pk: str
+    user: str
     type: str = "stopped_typing"
 
     def to_json(self) -> str:
         return json.dumps({
+            "type": self.type,
             "message_type": MessageTypes.TypingStopped,
-            "user_pk": self.user_pk
+            "user": self.user
         })

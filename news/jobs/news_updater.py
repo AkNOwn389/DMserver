@@ -12,8 +12,8 @@ session = requests.Session()
 
 
 def start():
-    #print("Running get new before schedule")
-    #getNews()
+    print("Running get new before schedule")
+    getNews()
     scheduler = BackgroundScheduler()
     scheduler.add_job(getNews, 'interval', seconds = 7200)
     scheduler.start()
@@ -28,10 +28,11 @@ def getNews():
     nasa_avatar = "https://res.cloudinary.com/dlcgldmau/image/upload/v1682632098/media/0ZxKlEKB_400x400_zih4au.jpg"
 
 
-    src = ["bbc-news", "cnn", "abc-news", "google-news", "polygon"]
+    src = ["cnn-philippines", "bbc-news", "cnn", "abc-news", "google-news", "polygon"]
     page = 1
     pagesize = 30
     key = settings.NEWS_API_KEY
+    key2 = settings.NEWS_API_KEY2
     sortby = "popularity"
     date_now = datetime.now()
     day_7_from_now = date_now - timedelta(days=7)
@@ -40,13 +41,17 @@ def getNews():
         while True:
             #source = random.choice(src)
             print("Updating news articles")
-            res = session.get(f"https://newsapi.org/v2/everything?sortBy={sortby}&apiKey={key}&pageSize={pagesize}&page={page}&sources={news_source}")
+            res = session.get(f"https://newsapi.org/v2/everything?sortBy={sortby}&apiKey={key2}&pageSize={pagesize}&page={page}&sources={news_source}")
             jsonData = json.loads(res.text.encode('utf-8').decode())
             all_news = News.objects.all()
             page = page +1
-
+            try:
+                print(jsonData['source']['id'])
+            except:
+                pass
             try:
                 jsonData['articles']
+                print(jsonData)
             except KeyError:
                 print(f"Exception: {jsonData['message']}")
                 break
@@ -77,13 +82,24 @@ def getNews():
                         avatar = google_avatar
                     elif news_id == "polygon":
                         avatar = polygon_avatar
+                    elif news_id == "cnn-philippines":
+                        avatar = cnn_avatar
                     elif news_id == "NASA":
                         avatar = nasa_avatar
+                    try:
+                        description = i['description']
+                    except:
+                        description = ""
+                    try:
+                        url = i['url']
+                    except:
+                        url = ""
 
-                    description = i['description']
-                    url = i['url']
                     publishedAt = i['publishedAt']
-                    content = i['content']
+                    try:
+                        content = i['content']
+                    except:
+                        content = ""
                     news = createNewsAticles(
                         avatar = avatar,
                         title = title,
