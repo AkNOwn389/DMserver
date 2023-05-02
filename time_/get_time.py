@@ -98,9 +98,9 @@ def getStringTime(date:str) -> str:
     elif diff.days >= 7:
         weeks = diff.days // 7
         if weeks > 1:
-            return f'{weeks} weeks ago'
+            return f'{weeks}w'
         else:
-            return f'{weeks} week ago'
+            return f'{weeks}w'
     elif diff.days > 0:
         day = diff.days
         return f'{diff.days}d'

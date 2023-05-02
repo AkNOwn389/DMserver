@@ -365,10 +365,11 @@ class Like_Post(APIView):
                     'post_likes': newLikeNumber})
             
 class MyPostListView(APIView):
+    data = {'status_code': 200, 'status': True, 'message': 'success'}
     success = {'status': True,'status_code': 200, 'message': 'success'}
     err = {"status":False, "message":"invalid token", "status_code":401}
     def get(self, request, page):
-        user = request.user
+        user:AbstractBaseUser = request.user
         if user.is_authenticated:
             me = ProfileSerializer(Profile.objects.get(user = request.user))
             post_list = Post.objects.filter(creator=user)
@@ -391,19 +392,21 @@ class MyPostListView(APIView):
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
-                i['me'] = True
+                i['me'] = True if i['creator'] == request.user.username else False
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
                     i['is_like'] = True
                 else:
                     i['is_like'] = False
-            
             if len(serializer.data) == 16:
-                hasMorePage = True
+                self.data['nextPageKey'] = page+1
+                self.data['hasMorePage'] = True
+                self.data['data'] = serializer.data
+                return JsonResponse(self.data)
             else:
-                hasMorePage = False
-            self.success['hasMorePage'] = hasMorePage
-            self.success['data'] = serializer.data
-            return JsonResponse(self.success)
+                self.data['hasMorePage'] = False
+                self.data['nextPageKey'] = 1
+                self.data['data'] = serializer.data
+                return JsonResponse(self.data)
         return JsonResponse(self.err)
 def getUser(user):
     try:
