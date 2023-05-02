@@ -1,11 +1,12 @@
 from datetime import datetime, time, date, timedelta
+from .db_articles import createNewsAticles
+from apscheduler.schedulers.background import BackgroundScheduler
+from bs4 import BeautifulSoup as soup
 from newsapi import NewsApiClient
 from django.conf import settings
 from news.models import News
 import json
 import newsapi
-from .db_articles import createNewsAticles
-from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import random
 session = requests.Session()
@@ -93,7 +94,7 @@ def getNews():
                     else:
                         no_id_avatar
 
-                    news = createNewsAticles(
+                    createNewsAticles(
                         avatar = avatar,
                         title = title,
                         news_id = news_id,
