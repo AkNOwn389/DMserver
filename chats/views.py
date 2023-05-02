@@ -114,7 +114,7 @@ class sendmessage(APIView):
         self.success['data']['me'] = True
 
         return Response(self.success)
-    
+     
     """
     channel_layer = get_channel_layer()
 

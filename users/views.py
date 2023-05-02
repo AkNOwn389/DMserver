@@ -75,28 +75,14 @@ def isOnline(user=None, username = None) -> bool:
     else:
         return False
 
-
-class WhoAmI(APIView):
-    def get(self, request):
-        user = request.user
-        if user.is_authenticated:
-            return JsonResponse({"status":True,
-                                 "status_code": 0,
-                                "message":"ok",
-                                "id":str(user.id),
-                                "username": str(user.username)})
-        else:
-            return JsonResponse({"status":False,
-                                 "status_code": 401,
-                                "message":"ok",
-                                "id": None,
-                                "username": None})
 class BahaviorLoginEvent(APIView):
     def get(self, request):
-        user = request.user
+        user:AbstractBaseUser = request.user
         try:
             if user.is_authenticated:
-                User.objects.filter(user = user).first().update(last_login = timezone.now())
+                usr = User.objects.get(pk = user.pk)
+                usr.last_login = datetime.now()
+                usr.save()
                 return JsonResponse({"status":True,
                                     "status_code": 0,
                                     "message":"ok",
@@ -109,6 +95,7 @@ class BahaviorLoginEvent(APIView):
                                     "id": None,
                                     "username": None})
         except Exception as e:
+            print(e)
             return JsonResponse({"status":False,
                                     "status_code": 403,
                                     "message":str(e),

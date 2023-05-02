@@ -16,8 +16,8 @@ DEBUG = True
 DEVELOPMENT_MODE = True
 
 ALLOWED_HOSTS = ['*']
-#CSRF_TRUSTED_ORIGINS = []
-#CORS_ORIGIN_WHITELIST = []
+CSRF_TRUSTED_ORIGINS = ["https://d16b-124-105-235-119.ngrok-free.app"]
+CORS_ORIGIN_WHITELIST = ["https://d16b-124-105-235-119.ngrok-free.app"]
 
 INSTALLED_APPS = [
     'daphne',
@@ -103,15 +103,9 @@ LOGGING = {
 
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
-        },
-    },
-}
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels_redis.core.RedisChannelLayer","CONFIG": {"hosts": [("127.0.0.1", 6379)],},},}
+#CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+#CHANNEL_LAYERS = {"default": {"BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer","CONFIG": {"hosts": [("localhost", 6379)],},},}
 DIALOGS_PAGINATION = 50
 MESSAGES_PAGINATION = 250
 PAGE_LIMIT = 16
@@ -281,9 +275,9 @@ EMAIL_HOST_PASSWORD = 'xwfzhflvoeewnmhz'
 
 
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'dlcgldmau',
-    'API_KEY': '192628236317652',
-    'API_SECRET': '67i3-1ALXcKtkr8x3ErA776EQEw'
+    'CLOUD_NAME': 'dsa3cmwpt',
+    'API_KEY': '735453999715484',
+    'API_SECRET': 'wobD2XopAYxAdasGI06NaZW4RA0'
 }
 
 NEWS_API_KEY = "010922d0ff0f42b8afa7ffcd0ed348db"

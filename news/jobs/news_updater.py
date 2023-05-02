@@ -12,8 +12,8 @@ session = requests.Session()
 
 
 def start():
-    print("Running get new before schedule")
-    getNews()
+    #print("Running get new before schedule")
+    #getNews()
     scheduler = BackgroundScheduler()
     scheduler.add_job(getNews, 'interval', seconds = 7200)
     scheduler.start()
@@ -26,9 +26,10 @@ def getNews():
     abc_avatar = "https://res.cloudinary.com/dlcgldmau/image/upload/v1682632097/media/3flU1i5o_400x400_xpzvge.jpg"
     google_avatar = "https://res.cloudinary.com/dlcgldmau/image/upload/v1682632097/media/NWRtL2J__400x400_tnyogv.jpg"
     nasa_avatar = "https://res.cloudinary.com/dlcgldmau/image/upload/v1682632098/media/0ZxKlEKB_400x400_zih4au.jpg"
+    no_id_avatar = "https://res.cloudinary.com/dlcgldmau/image/upload/v1682755920/media/news_fk8vqm.png"
 
 
-    src = ["cnn-philippines", "bbc-news", "cnn", "abc-news", "google-news", "polygon"]
+    src = ["cnn-ph", "bbc-news", "cnn", "abc-news", "google-news", "polygon"]
     page = 1
     pagesize = 30
     key = settings.NEWS_API_KEY
@@ -51,7 +52,6 @@ def getNews():
                 pass
             try:
                 jsonData['articles']
-                print(jsonData)
             except KeyError:
                 print(f"Exception: {jsonData['message']}")
                 break
@@ -60,18 +60,20 @@ def getNews():
             for i in jsonData['articles']:
                 go = True
                 for x in all_news:
-                    if i['content'] == x.content or i['description'] == x.description or i['title'] == x.title:
+                    if i['content'] == x.content:
                         go = False
                 if go == True:
-                    title = i['title']
-                    news_id = i['source']['id']
-                    name = i['source']['name']
-                    author = i['author']
-                    urlToImage = i['urlToImage']
-                    if author == None:
-                        author = ""
-                    if urlToImage == None or urlToImage == "":
-                        continue
+                    title = "" if i['title'] == None else i['title']
+                    publishedAt = i['publishedAt']
+                    news_id = "" if i['source']['id'] == None else i['source']['id']
+                    name = "" if i['source']['name'] == None else i['source']['name']
+                    author = "" if i['author'] == None else i['author']
+                    urlToImage = "" if i['urlToImage'] == None else i['urlToImage']
+                    description = "" if i['description'] == None else i['description']
+                    url = "" if i['url'] == None else i['url']
+                    content = "" if i['content'] == None else i['content']
+
+                    #news avatar
                     if news_id == "bbc-news":
                         avatar = bbc_avatar
                     elif news_id == "cnn":
@@ -82,24 +84,15 @@ def getNews():
                         avatar = google_avatar
                     elif news_id == "polygon":
                         avatar = polygon_avatar
-                    elif news_id == "cnn-philippines":
+                    elif news_id == "cnn-ph":
                         avatar = cnn_avatar
                     elif news_id == "NASA":
                         avatar = nasa_avatar
-                    try:
-                        description = i['description']
-                    except:
-                        description = ""
-                    try:
-                        url = i['url']
-                    except:
-                        url = ""
+                    elif news_id == None or news_id == "":
+                        no_id_avatar
+                    else:
+                        no_id_avatar
 
-                    publishedAt = i['publishedAt']
-                    try:
-                        content = i['content']
-                    except:
-                        content = ""
                     news = createNewsAticles(
                         avatar = avatar,
                         title = title,

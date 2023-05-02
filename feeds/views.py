@@ -63,11 +63,13 @@ class newsfeed(APIView):
                 else:
                     i['is_like'] = False
             if len(y.data) == 16:
+                self.data['nextPageKey'] = page+1
                 self.data['hasMorePage'] = True
                 self.data['data'] = y.data
                 return JsonResponse(self.data)
             else:
                 self.data['hasMorePage'] = False
+                self.data['nextPageKey'] = 1
                 self.data['data'] = y.data
                 return JsonResponse(self.data)
 

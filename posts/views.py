@@ -375,10 +375,23 @@ class MyPostListView(APIView):
             limit = page*16
             serializer = PostSerializer(post_list[int(limit)-16:int(limit)], many = True)
             for i in serializer.data:
+                if len(i['image_url']) == 0 and len(i['videos_url']) == 1:
+                    i['media_type'] = 6
+                    i['videos'] = i['videos_url'][0]['url_w500']
+                    i['url_w1000'] = i['videos_url'][0]['url_w1000']
+                    i['url_w250'] = i['videos_url'][0]['url_w250']
+                    i['playback_url'] = i['videos_url'][0]['playback_url']
+                    i['thumbnail'] = i['videos_url'][0]['thumbnail']
+                    i['width'] = i['videos_url'][0]['width']
+                    i['height'] = i['videos_url'][0]['height']
+                    del i['image_url']
+                    del i['videos_url']
+
                 i['creator_avatar'] = getAvatarByUsername(i['creator'])
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
+                i['me'] = True
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
                     i['is_like'] = True
                 else:
@@ -452,6 +465,11 @@ class MyGallery(APIView):
             for post_images in post_list:
                 imagelist.extend(post_images.images_url.all())
             serializer = ImagesSerializer(imagelist[int(limit)-16:int(limit)], many = True)
+            for i in serializer.data:
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                    i['is_like'] = True
+                else:
+                    i['is_like'] = False
             if len(serializer.data) == 16:
                 hasMorePage = True
             else:

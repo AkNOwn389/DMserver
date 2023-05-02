@@ -39,7 +39,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
         if self.user.is_authenticated:
             if await database_sync_to_async(self.getRoom)(room):
                 self.room = room
-                await self.channel_layer.group_add(self.room, self.channel_name)
+                #await self.channel_layer.group_add(self.room, self.channel_name)
                 await self.accept()
                 userProfile = await sync_to_async(self.getProfile)(self.user)
                 await self.send(json.dumps({
@@ -76,15 +76,24 @@ class CommentConsumer(AsyncWebsocketConsumer):
                     self.room,
                     serializeComment
                     )
+                return None
 
         elif dataType == CommentTypes.CommentCreated:
             pass
         elif dataType == CommentTypes.FileComment:
             pass
         elif dataType == CommentTypes.IsTyping:
-            pass
+            print(
+				f"User {self.user.username} has typing, sending 'user_typing' to {self.room}")
+            await self.channel_layer.group_send(
+                self.room,
+                OutgoingEventIsTyping(user=self.user.username)._asdict())
+            return None
         elif dataType == CommentTypes.StopTyping:
-            pass
+            print(
+				f"User {self.user.username} has stopped typing, sending 'stopped_typing' to {self.room}")
+            await self.channel_layer.group_send(self.room, OutgoingEventStoppedTyping(user=self.user.username)._asdict())
+            return None
         else:
             pass
 
@@ -140,8 +149,8 @@ class CommentConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
 
     async def user_typing(self, event:dict):
-        return self.send(OutgoingEventIsTyping(**event).to_json())
+        await self.send(text_data=OutgoingEventIsTyping(**event).to_json())
     
     async def user_stop_typing(self, event:dict):
-        return self.send(OutgoingEventStoppedTyping(**event).to_json())
+        await self.send(text_data=OutgoingEventStoppedTyping(**event).to_json())
     
