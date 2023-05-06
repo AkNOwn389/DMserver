@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'notifications',
     'cloudinary',
+    'comments',
     'profiles',
     'imagekit',
     'users',
@@ -284,3 +285,10 @@ NEWS_API_KEY = "010922d0ff0f42b8afa7ffcd0ed348db"
 NEWS_API_KEY2 = "60c22c7d0eab4637b6263b1b84067351"
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+
+BASE_URL = "http://localhost:8000"
+
+DEV_SERVER = len(sys.argv) > 1 and sys.argv[1] == "runserver"
+
+USE_NGROK = os.environ.get("USE_NGROK", "False") == "True" and os.environ.get("RUN_MAIN", None) != "true"

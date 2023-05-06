@@ -5,14 +5,15 @@ from channels.generic.websocket import AsyncWebsocketConsumer, JsonWebsocketCons
 from django.contrib.auth.models import AbstractBaseUser
 from .consumerErrorTypes import ErrorDescription, ErrorTypes
 from profiles.serializers import ProfileSerializer
-from .models import Post, Comment
+from posts.models import Post, Comment
 from users.views import isFollowed, isFollower
 from asgiref.sync import sync_to_async
 from time_.get_time import getStringTime, getStringTimeold
 from profiles.models import Profile
 from news.models import News
+from django.core.cache import cache
 
-from .serializers import PostCommentSerializer
+from posts.serializers import PostCommentSerializer
 
 #----------
 from .comment_types import CommentTypes, CommentTypesCommentMessage, OutgoingEventIsTyping,  Optional, OutgoingEventStoppedTyping
@@ -27,6 +28,10 @@ class CommentConsumer(AsyncWebsocketConsumer):
             return True
         elif News.objects.filter(id = postId).exists():
             return True
+        elif Post.objects.filter(images_url__id = postId).exists():
+            return True
+        elif Post.objects.filter(video_url__id = postId).exists():
+            return True
         else:
             return False
         
@@ -38,18 +43,26 @@ class CommentConsumer(AsyncWebsocketConsumer):
         room = self.scope['url_route']['kwargs']['postId']
         if self.user.is_authenticated:
             if await database_sync_to_async(self.getRoom)(room):
+                connected_users = cache.get(f'{room}_connected_users', [])
                 self.room = room
                 #await self.channel_layer.group_add(self.room, self.channel_name)
-                await self.accept()
-                userProfile = await sync_to_async(self.getProfile)(self.user)
-                await self.send(json.dumps({
-                    'type': "handshake",
-                    'info': userProfile,
-                    'status':True,
-                    'status_code':200,
-                    'message':'connected',
-                }))
-                await self.channel_layer.group_add(self.room, self.channel_name)
+                if self.user not in connected_users:
+                    print(f"\033[1;92muser: \033[1;94m{self.channel_name} \033[1;95maccess granted in room: \033[1;93m{room}\033[1;97m")
+                    await self.accept()
+                    userProfile = await sync_to_async(self.getProfile)(self.user)
+                    await self.send(json.dumps({
+                        'type': "handshake",
+                        'info': userProfile,
+                        'status':True,
+                        'status_code':200,
+                        'message':'connected',
+                    }))
+                    await self.channel_layer.group_add(self.room, self.channel_name)
+                    connected_users.append(self.user)
+                    cache.set(f'{room}_connected_users', value=connected_users)
+                else:
+                    print(f"\033[1;92muser: \033[1;94m{self.channel_name} \033[1;91malready in room")
+                    self.disconnect(404)
             self.disconnect(404)
         self.disconnect(401)
 
@@ -84,21 +97,21 @@ class CommentConsumer(AsyncWebsocketConsumer):
             pass
         elif dataType == CommentTypes.IsTyping:
             print(
-				f"User {self.user.username} has typing, sending 'user_typing' to {self.room}")
+				f"\033[1;92mUser {self.user.username} has typing, sending '\033[1;94mtyping\033[1;92m' to {self.room}\033[1;97m")
             await self.channel_layer.group_send(
                 self.room,
                 OutgoingEventIsTyping(user=self.user.username)._asdict())
             return None
         elif dataType == CommentTypes.StopTyping:
             print(
-				f"User {self.user.username} has stopped typing, sending 'stopped_typing' to {self.room}")
+				f"\033[1;92mUser {self.user.username} has stopped typing, sending '\033[1;94mstopped_typing\033[1;92m' to {self.room}\033[1;97m")
             await self.channel_layer.group_send(self.room, OutgoingEventStoppedTyping(user=self.user.username)._asdict())
             return None
         else:
             pass
 
     async def receive(self, text_data=None, bytes_data=None):
-        print(f"Receive fired: {self.user}")
+        print(f"\033[1;96mReceive fired: {self.user}\033[1;97m")
         error: Optional[ErrorDescription] = None
         try:
             text_data_json = json.loads(text_data)
@@ -127,7 +140,13 @@ class CommentConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_data))
 
     async def disconnect(self, code):
+        print(f"\033[1;92mremoving user \033[1;94m{self.channel_name} \033[1;92min room: \033[1;93m{self.room}\033[1;97m")
         await self.channel_layer.group_discard(self.room, self.channel_name)
+        connected_users = cache.get(f'{self.room}_connected_users', [])
+        if self.user in connected_users:
+            print(f"\033[1;92mremoving user \033[1;94m{self.channel_name} \033[1;92min cache: \033[1;93m{self.room}_connected_users\033[1;97m")
+            connected_users.remove(self.user)
+            cache.set(f'{self.room}_connected_users', connected_users)
         print(f"User: {self.user} is offline: {code} in room: {self.room}")
     
     #EVENT
@@ -147,7 +166,41 @@ class CommentConsumer(AsyncWebsocketConsumer):
         event['created'] = getStringTime(event['created'])
 
         await self.send(text_data=json.dumps(event))
+    async def new_video_comment(self, event:dict):
+        commentor:str = await get_user_by_pk(event['user'])
+        if self.user == commentor:
+            event['Followed'] = False
+            event['Follower'] = False
+            event['me'] = True
+        else:
+            event['Followed'] = await database_sync_to_async(isFollowed)(self.user, event['user'])
+            event['Follower'] = await database_sync_to_async(isFollower)(self.user, event['user'])
+            event['me'] = False
 
+        serializeProfile = await get_serialize_profile(commentor)
+        event['user_full_name'] = serializeProfile['name']
+        event['created'] = getStringTime(event['created'])
+
+        await self.send(text_data=json.dumps(event))
+
+    async def new_image_comment(self, event:dict):
+        commentor:str = await get_user_by_pk(event['user'])
+        if self.user == commentor:
+            event['Followed'] = False
+            event['Follower'] = False
+            event['me'] = True
+        else:
+            event['Followed'] = await database_sync_to_async(isFollowed)(self.user, event['user'])
+            event['Follower'] = await database_sync_to_async(isFollower)(self.user, event['user'])
+            event['me'] = False
+
+        serializeProfile = await get_serialize_profile(commentor)
+        event['user_full_name'] = serializeProfile['name']
+        event['created'] = getStringTime(event['created'])
+
+        await self.send(text_data=json.dumps(event))
+
+        
     async def user_typing(self, event:dict):
         await self.send(text_data=OutgoingEventIsTyping(**event).to_json())
     

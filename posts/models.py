@@ -338,11 +338,25 @@ class Comment(models.Model):
         return self.post_id
 
 class LikePost(models.Model):
+    class ReactionType(models.TextChoices):
+        HAPPY = 'H', 'Happy'
+        LOVE = 'L', 'Love'
+        LIKE = 'T', 'Like'
+        SAD = 'S', 'Sad'
+        WOW = 'W', 'Wow'
+        ANGRY = 'A', 'Angry'
+
     post_id = models.CharField(max_length=500)
     username = models.ForeignKey(User, on_delete=models.CASCADE)
+    reactionType = models.CharField(
+        max_length=1,
+        choices=ReactionType.choices,
+        default=ReactionType.LIKE,
+    )
 
     def __str__(self):
         return str(self.username)
+
 
 class LikeComment(models.Model):
     commentId = models.CharField(max_length=500)

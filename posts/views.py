@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
 from notifications.models import MyNotification
-from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer
+from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer, LikesPostSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos as PostVideos
 from django.db.models import Q, F
@@ -146,9 +146,17 @@ class GetPostDataById(APIView):
             success['data']['created_at'] = getStringTime(serialiser.data['created_at'])
             success['data']['is_like'] = True if LikePost.objects.filter(post_id=serialiser.data['id'], username=request.user).first() else False
             for i in success['data']['image_url']:
-                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                    i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
+                else:
+                    i['is_like'] = False
             for i in success['data']['videos_url']:
-                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                    i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
+                else:
+                    i['is_like'] = False
             return Response(success)
 
 #@transaction.atomic
@@ -256,13 +264,23 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': False})
         else:
             return JsonResponse({'status': True, 'message': True})
+class PostReactionType(enum.StrEnum):
+    LIKE = "Like"
+    LOVE = "Love"
+    HAPPY = "Happy"
+    WOW = "Wow"
+    ANGRY = "Angry"
+    SAD = "Sad"
+class ReactOrUnReact(enum.StrEnum):
+    REACT = "react"
+    UNREACT = "unReact"
+
 
 class Like_Post(APIView):
-    
     def GetPostData(self, post_id, post_type):
         if post_type == PostType.POST:
             try:
-                print("Post method call")
+                #print("Post method call")
                 post = Post.objects.get(id=post_id)
                 return post
             except Post.DoesNotExist:
@@ -270,7 +288,7 @@ class Like_Post(APIView):
             
         elif post_type == PostType.NEWSPOST:
             try:
-                print("news post method call")
+                #print("news post method call")
                 post =  News.objects.get(id = post_id)
                 return post
             except News.DoesNotExist:
@@ -278,7 +296,7 @@ class Like_Post(APIView):
             
         elif post_type == PostType.POSTIMAGE:
             try:
-                print("post image method call")
+                #print("post image method call")
                 post = Post.objects.get(images_url__id=str(post_id))
                 return post.images_url.get(id = post_id)
             except Post.DoesNotExist:
@@ -287,7 +305,7 @@ class Like_Post(APIView):
 
         elif post_type == PostType.VIDEO:
             try:
-                print("video  method call")
+                #print("video  method call")
                 post = Post.objects.get(id=post_id)
                 return post
             except Post.DoesNotExist:
@@ -313,12 +331,16 @@ class Like_Post(APIView):
 
     def MinusToPost(self, post):
         try:
+            if post.NoOflike is 0:
+                return post.NoOflike
             post.NoOflike = post.NoOflike-1
             post.update()
             return post.NoOflike
         except:
             pass
         try:
+            if post.noOfLike is 0:
+                return post.noOfLike
             post.noOfLike = post.noOfLike-1
             post.save()
             return post.noOfLike
@@ -328,41 +350,93 @@ class Like_Post(APIView):
     def post(self, request):
         user:AbstractBaseUser = request.user
         if user.is_authenticated:
-
             try:
-                post_id = request.data['post_id']
+                print(request.data)
+                post_id = request.data['postId']
                 post_type = request.data['postType']
+                reactionType = request.data['reactionType']
+                TYPE = request.data['type']
             except KeyError:
                 err_403['message'] == "keyError"
                 return Response(err_403)
             post = self.GetPostData(post_id, post_type)
-            print(post)
             if post == None:
                 err_404['message'] == "not found"
                 return Response(err_404)
+            try:
+                
+                REACTYPE:ReactOrUnReact = ReactOrUnReact(TYPE)
+                if REACTYPE is ReactOrUnReact.REACT:
+                    reaction:PostReactionType = PostReactionType(reactionType)
+            except ValueError as e:
+                text = {
+                    "status":False,
+                    "status_code":403,
+                    "message": str(e)
+                }
+                print(text)
+                return Response(text)
             
-            like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
-
-            if like_filter == None:
-                new_like = LikePost.objects.create(post_id=post_id, username=user)
-                new_like.save()
-                newLikeNumber = self.AddToPost(post=post)
-                if post_type != PostType.NEWSPOST:
-                    LikeNotificationView.saveLike(ako=user, postId=post_id)
-                print(newLikeNumber)
-                return JsonResponse({
-                    'status': True,
-                    'message': 'post like',
-                    'post_likes': newLikeNumber})
-            else:
-                like_filter.delete()
+            if REACTYPE is ReactOrUnReact.REACT:
+                like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
+                rType:LikePost.ReactionType = self.getReactionType(reaction)
+                if like_filter == None:
+                    new_like = LikePost.objects.create(post_id=post_id, username=user, reactionType = rType)
+                    new_like.save()
+                    newLikeNumber = self.AddToPost(post=post)
+                    if post_type != PostType.NEWSPOST:
+                        LikeNotificationView.saveLike(ako=user, postId=post_id)
+                    text = {
+                        'status': True,
+                        'message': 'post reacted',
+                        'reaction': reactionType,
+                        'post_likes': newLikeNumber}
+                    print(text)
+                    return Response(text)
+                else:
+                    like_filter.reactionType = rType
+                    like_filter.save()
+                    if post_type != PostType.NEWSPOST:
+                        LikeNotificationView.saveLike(ako=user, postId=post_id)
+                    try:
+                        new_number_of_like = post.NoOflike
+                    except:
+                        new_number_of_like = post.noOfLike
+                    text = {
+                        'status': True,
+                        'message': 'post reacted',
+                        'reaction': reactionType,
+                        'post_likes': new_number_of_like}
+                    print(text)
+                    return Response(text)
+                
+            elif REACTYPE is ReactOrUnReact.UNREACT:
+                like_to_delete = LikePost.objects.filter(post_id=post_id, username=user).first()
+                if like_to_delete:
+                    like_to_delete.delete()
                 newLikeNumber = self.MinusToPost(post=post)
-                print(newLikeNumber)
-                #LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
-                return JsonResponse({
+                LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
+                text = {
                     'status': True,
-                    'message': 'post unlike',
-                    'post_likes': newLikeNumber})
+                    'message': 'post unReacted',
+                    'reaction': None,
+                    'post_likes': newLikeNumber}
+                print(text)
+                return Response(text)
+            
+    def getReactionType(self, reaction:PostReactionType) -> LikePost.ReactionType:
+        if reaction == PostReactionType.LIKE:
+            return LikePost.ReactionType.LIKE
+        elif reaction == PostReactionType.LOVE:
+            return LikePost.ReactionType.LOVE
+        elif reaction == PostReactionType.HAPPY:
+            return LikePost.ReactionType.HAPPY
+        elif reaction == PostReactionType.WOW:
+            return LikePost.ReactionType.WOW
+        elif reaction == PostReactionType.SAD:
+            return LikePost.ReactionType.SAD
+        elif reaction == PostReactionType.ANGRY:
+            return LikePost.ReactionType.ANGRY
             
 class MyPostListView(APIView):
     data = {'status_code': 200, 'status': True, 'message': 'success'}
@@ -372,7 +446,7 @@ class MyPostListView(APIView):
         user:AbstractBaseUser = request.user
         if user.is_authenticated:
             me = ProfileSerializer(Profile.objects.get(user = request.user))
-            post_list = Post.objects.filter(creator=user)
+            post_list = Post.objects.filter(Q(creator=user, media_type = 1) | Q(creator=user, media_type = 2) | Q(creator=user, media_type = 3) | Q(creator=user, media_type = 4))
             limit = page*16
             serializer = PostSerializer(post_list[int(limit)-16:int(limit)], many = True)
             for i in serializer.data:
@@ -393,8 +467,9 @@ class MyPostListView(APIView):
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
                 i['me'] = True if i['creator'] == request.user.username else False
-                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
                 else:
                     i['is_like'] = False
             if len(serializer.data) == 16:
@@ -444,8 +519,9 @@ class PostView(APIView):
                 i['your_avatar'] = me.data['profileimg']
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
-                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
                 else:
                     i['is_like'] = False
             success['message'] = "success"
@@ -469,8 +545,9 @@ class MyGallery(APIView):
                 imagelist.extend(post_images.images_url.all())
             serializer = ImagesSerializer(imagelist[int(limit)-16:int(limit)], many = True)
             for i in serializer.data:
-                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
                 else:
                     i['is_like'] = False
             if len(serializer.data) == 16:
@@ -512,12 +589,26 @@ class DeleteCommentView(APIView):
                 err_404['message'] = "invalid data"
                 return Response(err_404)
             comment.delete()
-            post.NoOfcomment = post.NoOfcomment-1
+            if post.NoOfcomment != 0:
+                post.NoOfcomment = post.NoOfcomment-1
             post.save()
+            self.sendGroup(request=request, postId=postId, id=id)
             success['message'] = 'comment deleted'
             return Response(success)
         err_401['message'] = 'invalid user'
         return Response(err_401)
+    
+    def sendGroup(self, request, postId, id):
+        channel_layer = get_channel_layer()
+        group_name = postId
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type":"new_comment_deleted",
+                "id": str(id),
+                "post_id": str(postId)
+            })
+        return
 
 class LikeComments(APIView):
     def get(self, request, comment_id):
@@ -554,85 +645,4 @@ class LikeComments(APIView):
         return Response({'status': False,
                          'status_code': 401,
                          'message': 'invalid user'})
-class CommentView(APIView):
-    success = {'status': True,'status_code': 200, 'message': 'success'}
-    def getPostData(self, post_id):
-        try:
-            post = Post.objects.get(id=post_id)
-            return post
-        except:
-            pass
-        try:
-            post = Post.objects.get(images_url__id=str(post_id))
-            return post.images_url.get(id = post_id)
-        except:
-            pass
 
-        return None
-    def post(self, request):
-        if request.user.is_authenticated:
-            user = request.user
-            user_profile = Profile.objects.get(user = user)
-            comment = request.data['comment']
-            post_id = request.data['post_id']
-            try:
-                post = self.getPostData(post_id=post_id)
-                if post == None:
-                    err_404['message'] = "post doest not exists"
-                    return JsonResponse(err_404)
-            except Post.DoesNotExist:
-                err_404['message'] = "post doest not exists"
-                return JsonResponse(err_404)
-            try:
-                a = Comment.objects.create(post_id = post_id, avatar = user_profile.profileimg, comments = comment, user = user, type = 1)
-                a.save()
-                post.NoOfcomment = post.NoOfcomment+1
-                post.save()
-                CommentNotificationView.Notify(post_id=post_id, request=request)
-                serializer = PostCommentSerializer(a)
-                self.success['message'] = 'success'
-                self.success['data'] = serializer.data
-                self.success['data']['user_full_name'] = Profile.objects.get(user = User.objects.get(username = serializer.data['user'])).name
-                self.success['data']['Followed'] = isFollowed(request.user, serializer.data['user'])
-                self.success['data']['Follower'] = isFollower(request.user, serializer.data['user'])
-                self.success['data']['created'] = getStringTime(serializer.data['created'])
-                self.success['data']['me'] = True
-                return Response(self.success)
-            except:
-                err_403['message'] = 'system failure'
-                return Response(err_403)
-            
-        err_401['message'] = 'invalid user'
-        return JsonResponse(err_401)
-    def get(self, request, id, page):
-        if request.user.is_authenticated:
-            page = page*16
-            comment = Comment.objects.filter(post_id = id).order_by("-created")
-            if len(comment) == 0:
-                success['message'] = 'success'
-                success['data'] = []
-                return Response({
-                    'status': True,
-                    'status_code':200,
-                    'message': 'success',
-                    'data': []
-                })
-            serialiser = PostCommentSerializer(comment[int(page)-16:int(page)], many = True)
-            for i in serialiser.data:
-                i['user_full_name'] = Profile.objects.get(user = User.objects.get(username = i['user'])).name
-                i['Followed'] = isFollowed(request.user, i['user'])
-                i['Follower'] = isFollower(request.user, i['user'])
-                i['created'] = getStringTime(i['created'])
-                i['isLike'] = True if Like_Comment.objects.filter(user = request.user, commentId = i['id']).first() else False
-                i['me'] = True if i['user'] == request.user.username else False
-
-            return Response({
-                'status': True,
-                'status_code': 200,
-                'message': 'success',
-                'hasMorePage': True if len(serialiser.data) == 16 else False,
-                'data': serialiser.data
-            })
-        
-        err_401['message'] = 'invalid user'
-        return Response(err_401)

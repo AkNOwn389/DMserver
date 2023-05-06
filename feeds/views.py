@@ -3,7 +3,7 @@ from profiles.serializers import ProfileSerializer
 from profiles.models import Profile
 from users.models import FollowerCount
 from posts.models import Post, LikePost
-from posts.serializers import PostSerializer
+from posts.serializers import PostSerializer, LikesPostSerializer
 from time_.get_time import getStringTime
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -58,8 +58,9 @@ class newsfeed(APIView):
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
                 i['me'] = True if i['creator'] == request.user.username else False
-                if LikePost.objects.filter(post_id=i['id'], username=request.user).first():
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.filter(post_id=i['id'], username=request.user).first()).data['reactionType']
                 else:
                     i['is_like'] = False
             if len(y.data) == 16:
@@ -126,7 +127,11 @@ class VideosFeed(APIView):
                 i['dateCreated'] = i['created_at']
                 i['created_at'] = getStringTime(i['created_at'])
                 i['me'] = True if i['creator'] == request.user.username else False
-                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                    i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.filter(post_id=i['id'], username=request.user).first()).data['reactionType']
+                else:
+                    i['is_like'] = False
                 try:
                     i['video_url'] = i['videos_url'][0]['url_w1000']
                     i['thumbnail'] = i['videos_url'][0]['thumbnail']

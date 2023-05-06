@@ -24,6 +24,11 @@ class CommentTypes(enum.IntEnum):
     IsTyping = 5
     StopTyping = 6
 
+class CommentStrType(enum.StrEnum):
+    ImageComment = "image"
+    FileComment = "video"
+    TEXT = "text"
+
 class CommentTypesCommentMessage(TypedDict):
     comment: str
 # class OutgoingEventBase(TypedDict):

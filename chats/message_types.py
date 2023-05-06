@@ -40,6 +40,8 @@ class MessageTypes(enum.IntEnum):
     TypingStopped = 10
     RefreshPage = 11
     UpdatePage = 12
+    DeleteMessage = 13
+    ReactMessage = 14
 
 
 class ChatPageTypes(enum.IntEnum):

@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path('post/', include('posts.urls')),
+    path('comments/', include('comments.urls')),
     path('profile/', include('profiles.urls')),
     path('feed/', include('feeds.urls')),
     path('chat/', include('chats.urls')),

@@ -3,7 +3,7 @@ from django.urls import re_path, path, include
 from users import consumer
 from chats import consumers
 from notifications.notification_consumer import NotificationBadgeSocket
-from posts.consumer import CommentConsumer
+from comments.consumer import CommentConsumer
 
 websocket_urlpatterns = [
     path('ws/chat/socketTo=<str:user>', consumers.ChatConsumer.as_asgi()),
