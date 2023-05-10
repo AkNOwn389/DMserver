@@ -1,5 +1,4 @@
 from news.models import News
-from news.serializers import NewsSerializers
 
 
 

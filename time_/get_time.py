@@ -91,19 +91,19 @@ def getStringTime(date:str) -> str:
             return f'{years} year ago'
     elif diff.days >= 30:
         months = diff.days // 30
-        if months > 1:
-            return f'{months} months ago'
+        if months is 1:
+            return f'{months}m'
         else:
-            return f'{months} month ago'
+            return date.strftime('%b %d')
     elif diff.days >= 7:
         weeks = diff.days // 7
-        if weeks > 1:
+        if weeks is 1:
             return f'{weeks}w'
         else:
-            return f'{weeks}w'
+            return date.strftime('%b %d')
     elif diff.days > 0:
         day = diff.days
-        return f'{diff.days}d'
+        return f'{day}d'
     elif diff.seconds > 3600:
         hours = diff.seconds // 3600
         return f'{hours}h'

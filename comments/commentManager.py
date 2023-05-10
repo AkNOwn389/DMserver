@@ -3,12 +3,11 @@ from django.core.exceptions import ValidationError
 from typing import Set, Awaitable, Optional, Tuple
 from django.contrib.auth.models import AbstractBaseUser
 from chats.models import UploadedFile
-from posts.models import Comment
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from django.db.models.fields.files import ImageFieldFile
-from posts.serializers import PostCommentSerializer
-from posts.models import Comment
+from comments.serializers import PostCommentSerializer
+from comments.models import Comment
 from posts.models import Post
 from news.models import News
 
@@ -21,6 +20,11 @@ def save_comment(post_id:str, text: str, user: AbstractBaseUser, type:int, avata
         news:News = News.objects.get(id = post_id)
         news.noOfComment = news.noOfComment + 1
         news.save()
+    elif Post.objects.filter(images_url__id = post_id).exists():
+        post = Post.objects.get(images_url__id = post_id)
+        post_image = post.images_url.get(id = post_id)
+        post_image.NoOfcomment = post_image.NoOfcomment + 1
+        post_image.update()
     else:
         return None
     return Comment.objects.create(post_id = post_id, comments=text, user=user, comment_type=type, avatar = avatar)

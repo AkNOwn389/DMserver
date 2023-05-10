@@ -228,13 +228,29 @@ class NewsRemover:
     def start(self):
         news_all = News.objects.all()
         for i in news_all:
+            print(f"Checking news: {i.title}")
             try:
                 response = session.get(i.url)
             except:
                 continue
-            if response.status_code == 400:
-                print(f"Broken news url with status code:{response.status_code} deleting: {i}")
+            try:
+                response2 = session.get(i.urlToImage)
+                if response2.status_code is not 200:
+                    i.urlToImage = None
+                    print(f"\033[1;91mBroken news image removing image:{response2.status_code}\033[1;97m")
+            except:
+                i.urlToImage = None
+            try:
+                response3 = session.get(i.avatar)
+                if response3.status_code is not 200:
+                    i.avatar = "https://res.cloudinary.com/dkjejhexm/image/upload/v1683230287/news_abewli.png"
+            except:
+                pass
+            if response.status_code is not 200:
+                print(f"\033[1;91mBroken news url with status code:{response.status_code} deleting: {i}\033[1;97m")
                 i.delete()
+            else:
+                i.save()
 
 
 

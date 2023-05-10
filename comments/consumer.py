@@ -5,18 +5,18 @@ from channels.generic.websocket import AsyncWebsocketConsumer, JsonWebsocketCons
 from django.contrib.auth.models import AbstractBaseUser
 from .consumerErrorTypes import ErrorDescription, ErrorTypes
 from profiles.serializers import ProfileSerializer
-from posts.models import Post, Comment
+from posts.models import Post
 from users.views import isFollowed, isFollower
 from asgiref.sync import sync_to_async
 from time_.get_time import getStringTime, getStringTimeold
 from profiles.models import Profile
 from news.models import News
 from django.core.cache import cache
-
-from posts.serializers import PostCommentSerializer
+from .models import Comment
+from .serializers import PostCommentSerializer
 
 #----------
-from .comment_types import CommentTypes, CommentTypesCommentMessage, OutgoingEventIsTyping,  Optional, OutgoingEventStoppedTyping
+from .comment_types import CommentTypes, CommentTypesCommentMessage, OutgoingEventIsTyping,  Optional, OutgoingEventStoppedTyping, OutgoingEventCommentDeleted, OutgoingCommentReaction, OutgoingCommentUnReacted, OutgoingCommentChangeReaction
 
 from .consumerDbManager import get_file_by_id, get_user_by_pk, save_comment, get_serialize_profile, commentToJson, get_user_profile
 
@@ -111,7 +111,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
             pass
 
     async def receive(self, text_data=None, bytes_data=None):
-        print(f"\033[1;96mReceive fired: {self.user}\033[1;97m")
+        print(f"\033[1;96mReceive fired: {self.user} : {text_data}\033[1;97m")
         error: Optional[ErrorDescription] = None
         try:
             text_data_json = json.loads(text_data)
@@ -200,6 +200,17 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps(event))
 
+    async def new_comment_reacted(self, event:dict):
+        await self.send(text_data=OutgoingCommentReaction(**event).to_json())
+
+    async def new_comment_unreacted(self, event:dict):
+        await self.send(text_data=OutgoingCommentUnReacted(**event).to_json())
+    
+    async def new_comment_changeReaction(self, event:dict):
+        await self.send(text_data=OutgoingCommentChangeReaction(**event).to_json())
+
+    async def new_comment_deleted(self, event:dict):
+        await self.send(text_data=OutgoingEventCommentDeleted(**event).to_json())
         
     async def user_typing(self, event:dict):
         await self.send(text_data=OutgoingEventIsTyping(**event).to_json())

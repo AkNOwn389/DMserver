@@ -185,9 +185,13 @@ class LikeNotificationView:
             notif.subjectUser.add(ako)
             notif.save()
             return
-    
+        
     def deleteNotification(ako, postId):
-        creator = User.objects.get(username = Post.objects.get(Q(id = postId) | Q(images_url__id = str(postId))).creator)
+        try:
+            creator = User.objects.get(username = Post.objects.get(Q(id = postId) | Q(images_url__id = str(postId))).creator)
+        except Exception as e:
+            print(e)
+            return
         try:
             notif = MyNotification.objects.get(user = creator, subject_id = postId, description = "", notifType = 2)
             if ako in notif.subjectUser.all():
@@ -199,7 +203,6 @@ class LikeNotificationView:
                     if name == creator.username:
                         name = "You"
                     if len(notif.subjectUser.all()) == 1:
-                        
                         notif.title = f"{name} likes your posts"
                     else:
                         notif.title = f"{name} and {str(len(notif.subjectUser.all()) -1)} likes your posts"

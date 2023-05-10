@@ -4,7 +4,7 @@ urlpatterns = [
     path('upload', views.upload.as_view(), name='upload'),
     path('uploadtext', views.uploadTextPost.as_view(), name='uploadtext'),
     path('likepost', views.Like_Post.as_view(), name='like-post'),
-    path('likeComment/<str:comment_id>', views.LikeComments.as_view(), name = 'likeComment'),
+    path('likeComment', views.LikeComment.as_view(), name = 'likeComment'),
     path('islike', views.is_like.as_view(), name='islike'),
     path('postlist/page=<int:page>', views.MyPostListView.as_view(), name='postlist'),
     path('mygallery/page=<int:page>', views.MyGallery.as_view(), name='postlist'),

@@ -1,5 +1,6 @@
 from posts.models import Post
-from posts.serializers import PostSerializer, PostCommentSerializer, Comment
+from posts.serializers import PostSerializer
+from comments.serializers import PostCommentSerializer, Comment
 from profiles.models import Profile
 from users.models import FollowerCount
 from users.serializers import UserSerializer
@@ -13,6 +14,9 @@ from users.views import isFollowed, isFollower
 from .models import RecentSearch
 from django.utils import timezone
 from time_.get_time import getStringTime
+from posts.models import LikePost
+from comments.models import LikeComment
+from posts.serializers import LikesPostSerializer
 
 # Create your views here.
 
@@ -412,6 +416,11 @@ class MainSearch(APIView):
                         i['dateCreated'] = i['created_at']
                         i['created_at'] = getStringTime(i['created_at'])
                         i['searchType'] = 2
+                        if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                            i['is_like'] = True
+                            i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
+                        else:
+                            i['is_like'] = False
                     elif type == "videos":
                         i['isFollowed'] = isFollowed(request.user, i['creator'])
                         i['isFollower'] = isFollower(request.user, i['creator'])
@@ -420,6 +429,11 @@ class MainSearch(APIView):
                         i['dateCreated'] = i['created_at']
                         i['created_at'] = getStringTime(i['created_at'])
                         i['searchType'] = 3
+                        if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                            i['is_like'] = True
+                            i['reactionType'] = LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data['reactionType']
+                        else:
+                            i['is_like'] = False
                     elif type == "pages":
                         i['searchType'] = 4
 

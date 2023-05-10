@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Image, Videos,  Post, LikePost, Comment
+from .models import Image, Videos,  Post, LikePost
 from django.contrib.auth.models import User
 import cloudinary
 from time_.get_time import getStringTime
@@ -10,6 +10,13 @@ class ImagesSerializer(serializers.ModelSerializer):
   
   def to_representation(self, instance):
         rep = super().to_representation(instance)
+        reactionList = {"Like":len(LikePost.objects.filter(post_id = instance.id, reactionType = "T")),
+                        "Love":len(LikePost.objects.filter(post_id = instance.id, reactionType = "L")),
+                        "Happy":len(LikePost.objects.filter(post_id = instance.id, reactionType = "H")),
+                        "Sad":len(LikePost.objects.filter(post_id = instance.id, reactionType = "S")),
+                        "Wow":len(LikePost.objects.filter(post_id = instance.id, reactionType = "W")),
+                        "Angry":len(LikePost.objects.filter(post_id = instance.id, reactionType = "A"))}
+        rep['reactions'] = reactionList
         return rep
 
 class VideoSerializer(serializers.ModelSerializer):
@@ -19,6 +26,13 @@ class VideoSerializer(serializers.ModelSerializer):
 
   def to_representation(self, instance):
         rep = super().to_representation(instance)
+        reactionList = {"Like":len(LikePost.objects.filter(post_id = instance.id, reactionType = "T")),
+                        "Love":len(LikePost.objects.filter(post_id = instance.id, reactionType = "L")),
+                        "Happy":len(LikePost.objects.filter(post_id = instance.id, reactionType = "H")),
+                        "Sad":len(LikePost.objects.filter(post_id = instance.id, reactionType = "S")),
+                        "Wow":len(LikePost.objects.filter(post_id = instance.id, reactionType = "W")),
+                        "Angry":len(LikePost.objects.filter(post_id = instance.id, reactionType = "A"))}
+        rep['reactions'] = reactionList
         return rep
 
 class PostUploader(serializers.ModelSerializer):
@@ -60,19 +74,3 @@ class LikesPostSerializer(serializers.ModelSerializer):
         return rep
 
 from profiles.serializers import ProfileSerializer, Profile
-class PostCommentSerializer(serializers.ModelSerializer):
-  user = serializers.SlugRelatedField(
-    read_only = True,
-    slug_field = "username"
-  )
-  class Meta:
-    model = Comment
-    fields = ['id', 'post_id', 'image', 'video', 'avatar', 'user', 'comments', 'created', 'comment_type', 'NoOflike']
-  
-  def to_representation(self, instance):
-    rep = super().to_representation(instance)
-    profile = ProfileSerializer(Profile.objects.get(user = instance.user)).data
-    rep['avatar'] = profile['profileimg']
-    rep["image"] = ImagesSerializer(instance.image.all(), many=True).data
-    rep["video"] = VideoSerializer(instance.video.all(), many=True).data
-    return rep

@@ -13,9 +13,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
 from notifications.models import MyNotification
-from .serializers import ImagesSerializer, PostUploader, PostCommentSerializer, LikesPostSerializer
+from .serializers import ImagesSerializer, PostUploader, LikesPostSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
-from .models import Comment, LikeComment as Like_Comment , Image as PostImage, Videos as PostVideos
+from .models import  Image as PostImage, Videos as PostVideos
+from comments.models import LikeComment as Like_Comment, Comment
+from comments.comment_types import CommentTypes, CommentStrType
+from comments.serializers import PostCommentSerializer
 from django.db.models import Q, F
 from news.models import News
 from PIL import Image as ImagePIL, ImageFile
@@ -55,7 +58,16 @@ class PostType(enum.StrEnum):
         NEWSPOST = "news"
         POSTIMAGE = "postImage"
         VIDEO = "videos"
-
+class PostReactionType(enum.StrEnum):
+    LIKE = "Like"
+    LOVE = "Love"
+    HAPPY = "Happy"
+    WOW = "Wow"
+    ANGRY = "Angry"
+    SAD = "Sad"
+class ReactOrUnReact(enum.StrEnum):
+    REACT = "react"
+    UNREACT = "unReact"
 
 class ChangePrivacy(APIView):
     def get(self, request, id, privacy):
@@ -145,6 +157,7 @@ class GetPostDataById(APIView):
             success['data']['your_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = request.user.username))).data['profileimg']
             success['data']['created_at'] = getStringTime(serialiser.data['created_at'])
             success['data']['is_like'] = True if LikePost.objects.filter(post_id=serialiser.data['id'], username=request.user).first() else False
+            success['data']['reactionType'] = LikesPostSerializer(LikePost.objects.filter(post_id=serialiser.data['id'], username=request.user).first()).data['reactionType']
             for i in success['data']['image_url']:
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
@@ -264,16 +277,7 @@ class is_like(APIView):
             return JsonResponse({'status': True, 'message': False})
         else:
             return JsonResponse({'status': True, 'message': True})
-class PostReactionType(enum.StrEnum):
-    LIKE = "Like"
-    LOVE = "Love"
-    HAPPY = "Happy"
-    WOW = "Wow"
-    ANGRY = "Angry"
-    SAD = "Sad"
-class ReactOrUnReact(enum.StrEnum):
-    REACT = "react"
-    UNREACT = "unReact"
+
 
 
 class Like_Post(APIView):
@@ -378,14 +382,14 @@ class Like_Post(APIView):
                 return Response(text)
             
             if REACTYPE is ReactOrUnReact.REACT:
-                like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
+                like_filter = LikePost.objects.filter(post_id=post.id, username=user).first()
                 rType:LikePost.ReactionType = self.getReactionType(reaction)
                 if like_filter == None:
-                    new_like = LikePost.objects.create(post_id=post_id, username=user, reactionType = rType)
+                    new_like = LikePost.objects.create(post_id=post.id, username=user, reactionType = rType)
                     new_like.save()
                     newLikeNumber = self.AddToPost(post=post)
                     if post_type != PostType.NEWSPOST:
-                        LikeNotificationView.saveLike(ako=user, postId=post_id)
+                        LikeNotificationView.saveLike(ako=user, postId=post.id)
                     text = {
                         'status': True,
                         'message': 'post reacted',
@@ -397,7 +401,7 @@ class Like_Post(APIView):
                     like_filter.reactionType = rType
                     like_filter.save()
                     if post_type != PostType.NEWSPOST:
-                        LikeNotificationView.saveLike(ako=user, postId=post_id)
+                        LikeNotificationView.saveLike(ako=user, postId=post.id)
                     try:
                         new_number_of_like = post.NoOflike
                     except:
@@ -411,11 +415,13 @@ class Like_Post(APIView):
                     return Response(text)
                 
             elif REACTYPE is ReactOrUnReact.UNREACT:
-                like_to_delete = LikePost.objects.filter(post_id=post_id, username=user).first()
+                print(f"unreact {post}")
+                like_to_delete = LikePost.objects.filter(post_id=post.id, username=user).first()
                 if like_to_delete:
                     like_to_delete.delete()
                 newLikeNumber = self.MinusToPost(post=post)
-                LikeNotificationView.deleteNotification(ako=request.user, postId=post_id)
+                if post_type is not PostType.NEWSPOST:
+                    LikeNotificationView.deleteNotification(ako=request.user, postId=post.id)
                 text = {
                     'status': True,
                     'message': 'post unReacted',
@@ -578,71 +584,234 @@ class DeleteCommentView(APIView):
             return post.images_url.get(id = post_id)
         except:
             pass
-
+        try:
+            post = News.objects.get(id = str(post_id))
+            return post
+        except:
+            pass
         return None
     def get(self, request, id, postId):
         if request.user.is_authenticated:
+            user:AbstractBaseUser = request.user
             try:
-                comment = Comment.objects.get(id = id, user = request.user)
+                comment:Comment = Comment.objects.get(id = id, user = user)
                 post = self.getPostData(post_id=postId)
             except Comment.DoesNotExist:
                 err_404['message'] = "invalid data"
                 return Response(err_404)
-            comment.delete()
+            comment.comment_type = 3
+            comment.comments = None
+            comment.isDeleted = True
+            for i in comment.image.all():
+                i.delete()
+            for i in comment.video.all():
+                i.delete()
+            comment.save()
             if post.NoOfcomment != 0:
                 post.NoOfcomment = post.NoOfcomment-1
             post.save()
-            self.sendGroup(request=request, postId=postId, id=id)
+            self.sendGroup(user=request.user, postId=postId, id=id)
             success['message'] = 'comment deleted'
             return Response(success)
         err_401['message'] = 'invalid user'
         return Response(err_401)
     
-    def sendGroup(self, request, postId, id):
+    def sendGroup(self, user:AbstractBaseUser, postId:str, id:str):
         channel_layer = get_channel_layer()
         group_name = postId
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
-                "type":"new_comment_deleted",
-                "id": str(id),
-                "post_id": str(postId)
+                "user":user.username,
+                "data_type": 7,
+                "commentId": str(id),
+                "type":"new_comment_deleted"
             })
         return
-
-class LikeComments(APIView):
-    def get(self, request, comment_id):
-        if request.user.is_authenticated:
+    
+class LikeComment(APIView):
+    def sendToRoom(
+        self, room:str, commentId:str,
+        reactionType:PostReactionType,
+        user:AbstractBaseUser,
+        dataType:CommentTypes,
+        NewLikeNumber:int,
+        method:str,
+        ):
+        channel_layer = get_channel_layer()
+        group_name = room
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {   "newLikeNumber": NewLikeNumber,
+                "user":user.username,
+                "reactionType":reactionType,
+                "data_type": dataType,
+                "commentId": str(commentId),
+                "type":str(method)
+            })
+        return
+    def GetPostData(self, post_id, post_type):
+        if post_type == PostType.POST:
             try:
-                coment = Comment.objects.get(id = comment_id)
+                #print("Post method call")
+                post = Post.objects.get(id=post_id)
+                return post
+            except Post.DoesNotExist:
+                return None
+            
+        elif post_type == PostType.NEWSPOST:
+            try:
+                #print("news post method call")
+                post =  News.objects.get(id = post_id)
+                return post
+            except News.DoesNotExist:
+                return None
+            
+        elif post_type == PostType.POSTIMAGE:
+            try:
+                #print("post image method call")
+                post = Post.objects.get(images_url__id=str(post_id))
+                return post.images_url.get(id = post_id)
+            except Post.DoesNotExist:
+                return None
+            
+
+        elif post_type == PostType.VIDEO:
+            try:
+                #print("video  method call")
+                post = Post.objects.get(id=post_id)
+                return post
+            except Post.DoesNotExist:
+                return None
+            
+        else:
+            return None
+    def post(self, request):
+        user:AbstractBaseUser = request.user
+        if user.is_authenticated:
+            try:
+                print(request.data)
+                post_id = request.data['postId']
+                comment_id = request.data['commentId']
+                post_type = request.data['postType']
+                reactionType = request.data['reactionType']
+                TYPE = request.data['type']
+            except KeyError:
+                err_403['message'] == "keyError"
+                return Response(err_403)
+            try:
+                commentToReact = Comment.objects.get(id = comment_id)
             except Comment.DoesNotExist:
                 return Response({
                     'status': False,
                     'status_code': 404,
                     'message': 'comment not found'
                 })
-            if Like_Comment.objects.filter(commentId = comment_id, user = request.user).first():
-                Like_Comment.objects.get(commentId = comment_id, user = request.user).delete()
-                coment.NoOflike-=1
-                coment.save()
-                return Response({
+            post = self.GetPostData(post_id, post_type)
+            if post == None:
+                err_404['message'] == "not found"
+                return Response(err_404)
+            try:
+                
+                REACTYPE:ReactOrUnReact = ReactOrUnReact(TYPE)
+                if REACTYPE is ReactOrUnReact.REACT:
+                    reaction:PostReactionType = PostReactionType(reactionType)
+            except ValueError as e:
+                text = {
+                    "status":False,
+                    "status_code":403,
+                    "message": str(e)
+                }
+                print(text)
+                return Response(text)
+            
+            if REACTYPE is ReactOrUnReact.REACT:
+                like_filter = Like_Comment.objects.filter(commentId = comment_id, user = user).first()
+                rType:LikePost.ReactionType = self.getReactionType(reaction)
+                if like_filter == None:
+                    Like_Comment.objects.create(user = user, commentId=comment_id, reactionType = rType).save()
+                    commentToReact.NoOflike+=1
+                    commentToReact.save()
+                    if post_type != PostType.NEWSPOST:
+                        CommentNotificationView.Notify(post_id=post.id, request=request)
+                    self.sendToRoom(
+                        room=post.id,
+                        commentId=comment_id,
+                        reactionType=reaction,
+                        user=user,
+                        dataType=CommentTypes.CommentReacted,
+                        NewLikeNumber=newLikeNumber,
+                        method="new_comment_reacted"
+                        )
+                    text = {
+                        'status': True,
+                        'message': 'comment_reacted',
+                        'reaction': reaction,
+                        'commentLike': commentToReact.NoOflike}
+                    print(text)
+                    return Response(text)
+                else:
+                    like_filter.reactionType = rType
+                    like_filter.save()
+                    if post_type != PostType.NEWSPOST:
+                        #CommentNotificationView.Notify(post_id=post.id, request=request)
+                        pass
+                    self.sendToRoom(
+                        room=post.id,
+                        commentId=comment_id,
+                        reactionType=reaction,
+                        user=user,
+                        dataType=CommentTypes.CommentReacted,
+                        NewLikeNumber=newLikeNumber,
+                        method="new_comment_changeReaction"
+                        )
+                    new_number_of_like = commentToReact.NoOflike
+                    text = {
+                        'status': True,
+                        'message': 'comment_reacted',
+                        'reaction': reaction,
+                        'commentLike': new_number_of_like}
+                    print(text)
+                    return Response(text)
+                
+            elif REACTYPE is ReactOrUnReact.UNREACT:
+                print(f"unreact {post}")
+                rType:Like_Comment.ReactionType = self.getReactionType(reaction)
+                like_to_delete = Like_Comment.objects.filter(commentId = comment_id, user = user).first()
+                if like_to_delete:
+                    like_to_delete.delete()
+                commentToReact.NoOflike -=1
+                newLikeNumber = commentToReact.NoOflike
+                if post_type is not PostType.NEWSPOST:
+                    pass
+                self.sendToRoom(
+                    room=post.id,
+                    commentId=comment_id,
+                    reactionType=reaction,
+                    user=user,
+                    dataType=CommentTypes.CommentUnReacted,
+                    NewLikeNumber=newLikeNumber,
+                    method="new_comment_unreacted"
+                    )
+                text = {
                     'status': True,
-                    'status_code': 200,
-                    'commentLike': coment.NoOflike,
-                    'message': 'unlike'
-                })
-
-            else:
-                Like_Comment.objects.create(user = request.user, commentId=comment_id).save()
-                coment.NoOflike+=1
-                coment.save()
-                return Response({
-                    'status': True,
-                    'status_code': 200,
-                    'commentLike': coment.NoOflike,
-                    'message': 'like'
-                })
-        return Response({'status': False,
-                         'status_code': 401,
-                         'message': 'invalid user'})
+                    'message': 'comment_unReacted',
+                    'reaction': None,
+                    'commentLike': newLikeNumber}
+                print(text)
+                return Response(text)
+            
+    def getReactionType(self, reaction:PostReactionType) -> Like_Comment.ReactionType:
+        if reaction == PostReactionType.LIKE:
+            return Like_Comment.ReactionType.LIKE
+        elif reaction == PostReactionType.LOVE:
+            return Like_Comment.ReactionType.LOVE
+        elif reaction == PostReactionType.HAPPY:
+            return Like_Comment.ReactionType.HAPPY
+        elif reaction == PostReactionType.WOW:
+            return Like_Comment.ReactionType.WOW
+        elif reaction == PostReactionType.SAD:
+            return Like_Comment.ReactionType.SAD
+        elif reaction == PostReactionType.ANGRY:
+            return Like_Comment.ReactionType.ANGRY
 

@@ -322,21 +322,6 @@ class SharePost(models.Model):
     def update(self, *args, **kwargs):
         super(Post, self).save(*args, **kwargs)
 
-
-class Comment(models.Model):
-    post_id = models.UUIDField(primary_key=False)
-    avatar = models.ImageField(blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    image = models.ManyToManyField(Image, blank=True)
-    video = models.ManyToManyField(Videos, blank=True)
-    comment_type = models.IntegerField(blank=False, default=1)
-    comments = models.TextField(max_length=1500)
-    created = models.DateTimeField(auto_now_add=True)
-    NoOflike = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.post_id
-
 class LikePost(models.Model):
     class ReactionType(models.TextChoices):
         HAPPY = 'H', 'Happy'
@@ -356,8 +341,3 @@ class LikePost(models.Model):
 
     def __str__(self):
         return str(self.username)
-
-
-class LikeComment(models.Model):
-    commentId = models.CharField(max_length=500)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)

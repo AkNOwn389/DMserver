@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .serializers import NewsSerializers
 from posts.models import Post, LikePost
 from time_.get_time import getStringTime
+from posts.serializers import LikesPostSerializer
 import re
 # Create your views here.
 
@@ -19,7 +20,11 @@ class GetNew(APIView):
             news = News.objects.all().order_by("-publishedAt")
             serialiser = NewsSerializers(news[int(page) - 16:int(page)], many = True)
             for i in serialiser.data:
-                i['is_like'] = True if LikePost.objects.filter(post_id=i['id'], username=request.user).first() else False
+                if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
+                    i['is_like'] = True
+                    i['reactionType'] = LikesPostSerializer(LikePost.objects.filter(post_id=i['id'], username=request.user).first()).data['reactionType']
+                else:
+                    i['is_like'] = False
                 i['content'] = i['content'][ :int ( len(i['content'])) - 13]
                 i['publishedAt'] = getStringTime(i['publishedAt'])
             return Response({

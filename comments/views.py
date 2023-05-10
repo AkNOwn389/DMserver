@@ -16,9 +16,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
 from notifications.models import MyNotification
-from posts.serializers import ImagesSerializer, PostUploader, PostCommentSerializer
+from posts.serializers import ImagesSerializer, PostUploader
+from .models import Comment as CommentTable
+from .serializers import PostCommentSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
-from posts.models import Comment as CommentTable, LikeComment as Like_Comment , Image as PostImage, Videos as PostVideos
+from posts.models import Image as PostImage, Videos as PostVideos
+from comments.models import LikeComment as Like_Comment
 from django.db.models import Q, F
 from .comment_types import CommentTypes, CommentStrType
 from news.models import News
@@ -63,6 +66,8 @@ class SendComment(APIView):
             return True
         elif News.objects.filter(id = postId).exists():
             return True
+        elif Post.objects.filter(images_url__id = postId).exists():
+            return True
         else:
             return False
     def CreateComment(self, postId:str, comment:str, user:AbstractBaseUser, commentType:int) -> CommentTable:
@@ -73,7 +78,6 @@ class SendComment(APIView):
         channel_layer = get_channel_layer()
         group_name = room
         serializeComment['type'] = comment_type
-        print(serializeComment)
         async_to_sync(channel_layer.group_send)(group_name, serializeComment)
         return
 
@@ -181,6 +185,7 @@ class SendComment(APIView):
         if user.is_authenticated:
             if self.getRoom(postId=request.data['postId']):
                 if commentType == CommentStrType.TEXT:
+                    print(request.data)
                     return self.commentNaNatural(request=request)
                 else:
                     return Response({
