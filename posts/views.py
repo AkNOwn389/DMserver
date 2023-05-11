@@ -161,11 +161,11 @@ class GetPostDataById(APIView):
             success['message'] = "success"
             success['data'] = serialiser.data
             success['data']['creator_avatar'] = \
-            ProfileSerializer(Profile.objects.get(user=User.objects.get(username=serialiser.data['creator']))).data[
-                'profileimg']
+                ProfileSerializer(Profile.objects.get(user=User.objects.get(username=serialiser.data['creator']))).data[
+                    'profileimg']
             success['data']['your_avatar'] = \
-            ProfileSerializer(Profile.objects.get(user=User.objects.get(username=request.user.username))).data[
-                'profileimg']
+                ProfileSerializer(Profile.objects.get(user=User.objects.get(username=request.user.username))).data[
+                    'profileimg']
             success['data']['created_at'] = getStringTime(serialiser.data['created_at'])
             success['data']['is_like'] = True if LikePost.objects.filter(post_id=serialiser.data['id'],
                                                                          username=request.user).first() else False
@@ -176,16 +176,16 @@ class GetPostDataById(APIView):
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
                     i['reactionType'] = \
-                    LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
-                        'reactionType']
+                        LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                            'reactionType']
                 else:
                     i['is_like'] = False
             for i in success['data']['videos_url']:
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
                     i['reactionType'] = \
-                    LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
-                        'reactionType']
+                        LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                            'reactionType']
                 else:
                     i['is_like'] = False
             return Response(success)
@@ -498,8 +498,8 @@ class MyPostListView(APIView):
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
                     i['reactionType'] = \
-                    LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
-                        'reactionType']
+                        LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                            'reactionType']
                 else:
                     i['is_like'] = False
             if len(serializer.data) == 16:
@@ -556,8 +556,8 @@ class PostView(APIView):
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
                     i['reactionType'] = \
-                    LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
-                        'reactionType']
+                        LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                            'reactionType']
                 else:
                     i['is_like'] = False
             success['message'] = "success"
@@ -585,8 +585,8 @@ class MyGallery(APIView):
                 if LikePost.objects.filter(post_id=i['id'], username=request.user).exists():
                     i['is_like'] = True
                     i['reactionType'] = \
-                    LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
-                        'reactionType']
+                        LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                            'reactionType']
                 else:
                     i['is_like'] = False
             if len(serializer.data) == 16:
@@ -705,13 +705,15 @@ def GetPostData(post_id, post_type):
     else:
         return None
 
-def getCommentReactions(id):
-    return  {"Like":len(Like_Comment.objects.filter(commentId = id, reactionType = "T")),
-                "Love":len(Like_Comment.objects.filter(commentId = id, reactionType = "L")),
-                "Happy":len(Like_Comment.objects.filter(commentId = id, reactionType = "H")),
-                "Sad":len(Like_Comment.objects.filter(commentId = id, reactionType = "S")),
-                "Wow":len(Like_Comment.objects.filter(commentId = id, reactionType = "W")),
-                "Angry":len(Like_Comment.objects.filter(commentId = id, reactionType = "A"))}
+
+def getCommentReactions(Id):
+    return {"Like": len(Like_Comment.objects.filter(commentId=Id, reactionType="T")),
+            "Love": len(Like_Comment.objects.filter(commentId=Id, reactionType="L")),
+            "Happy": len(Like_Comment.objects.filter(commentId=Id, reactionType="H")),
+            "Sad": len(Like_Comment.objects.filter(commentId=Id, reactionType="S")),
+            "Wow": len(Like_Comment.objects.filter(commentId=Id, reactionType="W")),
+            "Angry": len(Like_Comment.objects.filter(commentId=Id, reactionType="A"))}
+
 
 class LikeComment(APIView):
     def sendToRoom(
