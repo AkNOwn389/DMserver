@@ -5,6 +5,8 @@ from posts.models import Image, Videos
 # Create your models here.
 
 class LikeComment(models.Model):
+    objects = None
+
     class ReactionType(models.TextChoices):
         HAPPY = 'H', 'Happy'
         LOVE = 'L', 'Love'
@@ -21,6 +23,7 @@ class LikeComment(models.Model):
     )
     
 class Comment(models.Model):
+    DoesNotExist = None
     post_id = models.UUIDField(primary_key=False)
     avatar = models.ImageField(blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -29,3 +29,12 @@ class PostCommentSerializer(serializers.ModelSerializer):
     rep['reactions'] = reactionList
     return rep
   
+class LikesCommentSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = LikeComment
+    fields = ['commentId', 'user', 'reactionType']
+  def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['reactionType'] = instance.get_reactionType_display()
+        return rep
+  

@@ -43,7 +43,7 @@ def get_user_profile(user:AbstractBaseUser) -> Awaitable[Optional[Profile]]:
 def save_comment(post_id:str, text: str, user: AbstractBaseUser, type:int, avatar:ImageFieldFile) -> Awaitable[Optional[Comment]]:
     if Post.objects.filter(id = post_id).exists():
         post:Post = Post.objects.get(id = post_id)
-        post.NoOfcomment = post.NoOfcomment + 1
+        post.NoOfComment = post.NoOfComment + 1
         post.save()
     elif Post.objects.filter(images_url__id = post_id).exists():
         post:Post = Post.objects.get(images_url__id = post_id)

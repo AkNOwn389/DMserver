@@ -135,7 +135,7 @@ class MyNotificationView(APIView):
                 except:
                     pass
                 try:
-                    i['NoOfcomment'] = Post.objects.get(id = i['subject_id']).NoOfcomment
+                    i['NoOfcomment'] = Post.objects.get(id = i['subject_id']).NoOfComment
                 except:
                     pass
                 try:

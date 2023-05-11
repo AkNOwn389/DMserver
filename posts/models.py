@@ -18,13 +18,13 @@ from cloudinary.utils import cloudinary_url
 
 
 def getAssetInfo(public_id):
+    # Get and use details of the image
+    # ==============================
+    # Get image details and save it in the variable 'image_info'.
+    image_info = cloudinary.api.resource(public_id)
+    print("****3. Get and use details of the image****\nUpload response:\n", json.dumps(image_info, indent=2), "\n")
+    return image_info
 
-  # Get and use details of the image
-  # ==============================
-  # Get image details and save it in the variable 'image_info'.
-  image_info=cloudinary.api.resource(public_id)
-  print("****3. Get and use details of the image****\nUpload response:\n", json.dumps(image_info,indent=2), "\n")
-  return image_info
 
 def post_rdm_name(a, b):
     c, d = os.path.splitext(b)
@@ -35,7 +35,8 @@ def post_rdm_name(a, b):
         g = Image.objects.filter(image=f).first()
         if g is None:
             return str(f)
-    
+
+
 def post_videos_rdm_name(a, b):
     c, d = os.path.splitext(b)
     while True:
@@ -45,25 +46,26 @@ def post_videos_rdm_name(a, b):
         g = Videos.objects.filter(videos=f).first()
         if g is None:
             return f
-        
-        
+
+
 def get_unique_id():
     while True:
         a = uuid.uuid4()
         go = True
-        if Post.objects.filter(id = a).first():
+        if Post.objects.filter(id=a).first():
             go = False
-        if Image.objects.filter(id = a).first():
+        if Image.objects.filter(id=a).first():
             go = False
-        if Videos.objects.filter(id = a).first():
+        if Videos.objects.filter(id=a).first():
             go = False
         if go == True:
             return a
 
+
 class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=get_unique_id)
     public_id = models.TextField(max_length=300, blank=False, default="null")
-    image = CloudinaryField("image", folder = "media/post_images/")
+    image = CloudinaryField("image", folder="media/post_images/")
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     url = models.URLField(blank=True)
@@ -86,15 +88,17 @@ class Image(models.Model):
 
     class Meta:
         ordering = ['image', 'NoOflike', 'NoOfcomment', 'thumbnail']
+
     def __str__(self):
         return str(self.id)
-    
+
     def update(self, *args, **kwargs):
         super(Image, self).save(*args, **kwargs)
-    
+
     def save(self, *args, **kwargs):
         try:
-            upload_result = cloudinary.uploader.upload(self.image, options={"quality": "auto:low", 'width': 500, 'crop': "scale"})
+            upload_result = cloudinary.uploader.upload(self.image,
+                                                       options={"quality": "auto:low", 'width': 500, 'crop': "scale"})
             self.url = upload_result['url']
             self.secure_url = upload_result['secure_url']
             self.public_id = upload_result['public_id']
@@ -112,18 +116,18 @@ class Image(models.Model):
             self.etag = upload_result['etag']
             url, options = cloudinary_url(
                 upload_result['public_id'],
-                transformation=[{'width': 1000, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 1000, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.url_w1000 = url
             url, options = cloudinary_url(
                 upload_result['public_id'],
-                transformation=[{'width': 500, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 500, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.thumbnail = url
             url, options = cloudinary_url(
                 upload_result['public_id'],
-                transformation=[{'width': 250, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 250, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.url_w250 = url
         except Exception as e:
             cloudinary.uploader.destroy(self.public_id)
@@ -131,17 +135,18 @@ class Image(models.Model):
             return
         super(Image, self).save(*args, **kwargs)
 
+
 class Videos(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     public_id = models.TextField(max_length=300, blank=False, default="null")
-    videos = CloudinaryField("video" , resource_type = "video", folder="post_videos/")
-    #video url
+    videos = CloudinaryField("video", resource_type="video", folder="post_videos/")
+    # video url
     original = models.URLField(blank=True)
     playback_url = models.URLField(blank=True)
     url_w1000 = models.URLField(blank=True)
     url_w500 = models.URLField(blank=True)
     url_w250 = models.URLField(blank=True)
-    #data
+    # data
     secure_url = models.URLField(blank=True)
     audio_bit_rate = models.TextField(blank=True)
     audio_codec = models.TextField(blank=True)
@@ -169,7 +174,7 @@ class Videos(models.Model):
     original_filename = models.TextField(blank=True)
     nb_frames = models.IntegerField(blank=True)
     api_key = models.TextField(blank=True)
-    #video
+    # video
     pix_format = models.TextField(blank=True)
     video_codec = models.TextField(blank=True)
     level = models.TextField(blank=True)
@@ -179,10 +184,11 @@ class Videos(models.Model):
 
     def __str__(self):
         return str(self.id)
+
     def save(self, *args, **kwargs):
-        #upload video
+        # upload video
         upload_result = cloudinary.uploader.upload(self.videos, resource_type="auto")
-        #assigning value
+        # assigning value
         self.original = upload_result['url']
         self.playback_url = upload_result['playback_url']
         self.secure_url = upload_result['secure_url']
@@ -199,21 +205,21 @@ class Videos(models.Model):
         self.Bytes = upload_result['bytes']
         self.Type = upload_result['type']
         self.etag = upload_result['etag']
-        #datails
-        #audio
+        # datails
+        # audio
         self.audio_bit_rate = upload_result['audio']['bit_rate']
         self.audio_codec = upload_result['audio']['codec']
         self.frequency = upload_result['audio']['frequency']
         self.channels = upload_result['audio']['channels']
         self.channel_layout = upload_result['audio']['channel_layout']
-        #video
+        # video
         self.pix_format = upload_result['video']['pix_format']
         self.video_codec = upload_result['video']['codec']
         self.level = upload_result['video']['level']
         self.profile = upload_result['video']['profile']
         self.video_bitrate = upload_result['video']['bit_rate']
         self.time_base = upload_result['video']['time_base']
-        #all
+        # all
         self.is_audio = upload_result['is_audio']
         self.framerate = upload_result['frame_rate']
         self.bit_rate = upload_result['bit_rate']
@@ -226,8 +232,8 @@ class Videos(models.Model):
             url, options = cloudinary_url(
                 upload_result['public_id'],
                 resource_type='video',
-                transformation=[{'width': 1000, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 1000, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.url_w1000 = url
         except Exception as e:
             print(f"Exception: {e}")
@@ -236,8 +242,8 @@ class Videos(models.Model):
             url, options = cloudinary_url(
                 upload_result['public_id'],
                 resource_type='video',
-                transformation=[{'width': 500, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 500, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.url_w500 = url
         except Exception as e:
             print(f"Exception: {e}")
@@ -246,15 +252,16 @@ class Videos(models.Model):
             url, options = cloudinary_url(
                 upload_result['public_id'],
                 resource_type='video',
-                transformation=[{'width': 250, 'crop': "scale"},{'quality': "auto"},{'fetch_format': "auto"}]
-                )
+                transformation=[{'width': 250, 'crop': "scale"}, {'quality': "auto"}, {'fetch_format': "auto"}]
+            )
             self.url_w250 = url
         except Exception as e:
             print(f"Exception: {e}")
             pass
         try:
             video = CloudinaryVideo(self.public_id)
-            thumbnail_url = video.build_url(transformation=[{'quality': "auto"},{'width': 1000, 'crop': 'scale'}], format='jpg')
+            thumbnail_url = video.build_url(transformation=[{'quality': "auto"}, {'width': 1000, 'crop': 'scale'}],
+                                            format='jpg')
             self.thumbnail = thumbnail_url
         except Exception as e:
             print(f"Exception: {e}")
@@ -264,14 +271,18 @@ class Videos(models.Model):
         except Exception as e:
             print(e)
             return
-    
+
+
 class Post(models.Model):
+    DoesNotExist = None
+    objects = None
+
     class privacy_choice(models.TextChoices):
         Public = 'P', _('Public')
         Friends = 'F', _('Friends')
         OnlyMe = 'O', _('Only-Me')
 
-    id = models.UUIDField(primary_key = True, default=uuid.uuid4)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     source = models.TextField(max_length=200, default="direct message")
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creator')
     creator_full_name = models.TextField(max_length=200)
@@ -283,15 +294,16 @@ class Post(models.Model):
     status = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     NoOflike = models.IntegerField(default=0)
-    NoOfcomment = models.IntegerField(default=0)
+    NoOfComment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
     privacy = models.CharField(choices=privacy_choice.choices, default=privacy_choice.Friends, max_length=1)
+
     class Meta:
         ordering = ["-created_at"]
-        
+
     def __str__(self):
-        return str(self.creator)+" "+str(self.description)
-    
+        return str(self.creator) + " " + str(self.description)
+
     def update(self, *args, **kwargs):
         super(Post, self).save(*args, **kwargs)
 
@@ -301,7 +313,7 @@ class SharePost(models.Model):
         Public = 'P', _('Public')
         Friends = 'F', _('Friends')
         OnlyMe = 'O', _('Only-Me')
-        
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     postToShare = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_to_share')
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='share_post_creator')
@@ -313,16 +325,20 @@ class SharePost(models.Model):
     NoOflike = models.IntegerField(default=0)
     NoOfcomment = models.IntegerField(default=0)
     media_type = models.IntegerField(default=1)
+
     class Meta:
         ordering = ["-created_at"]
-        
+
     def __str__(self):
-        return str(self.creator)+" "+str(self.description)
-    
+        return str(self.creator) + " " + str(self.description)
+
     def update(self, *args, **kwargs):
         super(Post, self).save(*args, **kwargs)
 
+
 class LikePost(models.Model):
+    objects = None
+
     class ReactionType(models.TextChoices):
         HAPPY = 'H', 'Happy'
         LOVE = 'L', 'Love'

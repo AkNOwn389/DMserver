@@ -38,7 +38,7 @@ class VideoSerializer(serializers.ModelSerializer):
 class PostUploader(serializers.ModelSerializer):
   class Meta:
     model = Post
-    fields = ['id','creator', 'creator_full_name', 'videos_url', 'images_url', 'title', 'description', 'created_at','NoOflike', 'NoOfcomment', 'media_type', 'privacy']
+    fields = ['id','creator', 'creator_full_name', 'videos_url', 'images_url', 'title', 'description', 'created_at','NoOflike', 'NoOfComment', 'media_type', 'privacy']
 
 class PostSerializer(serializers.ModelSerializer):
   creator = serializers.SlugRelatedField(
@@ -47,7 +47,7 @@ class PostSerializer(serializers.ModelSerializer):
         )
   class Meta:
     model = Post
-    fields = ['id','creator', 'creator_full_name', 'title', 'perma_link',  'description', 'created_at', 'NoOflike', 'NoOfcomment', 'media_type', 'status', 'privacy']
+    fields = ['id','creator', 'creator_full_name', 'title', 'perma_link',  'description', 'created_at', 'NoOflike', 'NoOfComment', 'media_type', 'status', 'privacy']
 
 
   def to_representation(self, instance):

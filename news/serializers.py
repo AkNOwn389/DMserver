@@ -6,7 +6,7 @@ from posts.models import LikePost
 class NewsSerializers(serializers.ModelSerializer):
     class Meta:
         model = News
-        fields = ['id', 'avatar', 'title', 'news_id', 'name', 'author', 'description', 'url', 'urlToImage', 'publishedAt', 'content', 'noOfLike', 'noOfComment', 'noOfShare', 'news_type']
+        fields = ['id', 'avatar', 'title', 'news_id', 'name', 'author', 'description', 'url', 'urlToImage', 'publishedAt', 'content', 'noOfLike', 'NoOfComment', 'noOfShare', 'news_type']
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         reactionList = {"Like":len(LikePost.objects.filter(post_id = instance.id, reactionType = "T")),
