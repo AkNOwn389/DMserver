@@ -18,7 +18,7 @@ from news.models import News
 from .commentManager import save_comment
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-
+from typing import Union, Optional
 success = {"status": True, "status_code": 200}
 err_401 = {"status": False, "status_code": 401}
 err_402 = {"status": False, "status_code": 402}
@@ -81,6 +81,7 @@ def commentWithImage(request, file) -> Response:
     serializeComment['Followed'] = isFollowed(request.user, serializeComment['user'])
     serializeComment['Follower'] = isFollower(request.user, serializeComment['user'])
     serializeComment['created'] = getStringTime(serializeComment['created'])
+    serializeComment['is_like'] = False
     serializeComment['me'] = True
     return Response({
         "status": True,
@@ -109,6 +110,7 @@ def commentWithVideo(request, file) -> Response:
     serializeComment['Followed'] = isFollowed(request.user, serializeComment['user'])
     serializeComment['Follower'] = isFollower(request.user, serializeComment['user'])
     serializeComment['created'] = getStringTime(serializeComment.data['created'])
+    serializeComment['is_like'] = False
     serializeComment['me'] = True
     return Response({
         "status": True,
@@ -135,6 +137,7 @@ def commentNaNatural(request) -> Response:
     serializeComment['Followed'] = isFollowed(request.user, serializeComment['user'])
     serializeComment['Follower'] = isFollower(request.user, serializeComment['user'])
     serializeComment['created'] = getStringTime(serializeComment['created'])
+    serializeComment['is_like'] = False
     serializeComment['me'] = True
     print(serializeComment)
     return Response({
@@ -197,7 +200,7 @@ class SendComment(APIView):
 class CommentView(APIView):
     success = {'status': True, 'status_code': 200, 'message': 'success'}
 
-    def getPostData(self, post_id):
+    def getPostData(self, post_id:str):
         try:
             post = Post.objects.get(id=post_id)
             return post

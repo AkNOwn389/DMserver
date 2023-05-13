@@ -12,5 +12,5 @@ urlpatterns = [
     path('getpost/id=<str:postId>', views.GetPostDataById.as_view(), name="getpostdata"),
     path('changePrivacy/<str:id>/privacy=<str:privacy>', views.ChangePrivacy.as_view()),
     path('deletePosts/postId=<str:postId>', views.DeletePost.as_view(), name = 'deletePost'),
-    path('delete_comment/commentId=<int:id>/postId=<str:postId>', views.DeleteCommentView.as_view(), name='deleteComent')
+    path('delete_comment/commentId=<int:Id>/postId=<str:postId>', views.DeleteCommentView.as_view(), name='deleteComent')
 ]

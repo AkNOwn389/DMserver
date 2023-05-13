@@ -20,16 +20,13 @@ from comments.comment_types import CommentTypes, CommentStrType
 from comments.serializers import PostCommentSerializer
 from django.db.models import Q, F
 from news.models import News
-from PIL import Image as ImagePIL, ImageFile
-from django.db import transaction
-from io import BytesIO, StringIO
-from django.core.files import File
-from PIL import Image
-from django.core.files.base import ContentFile
-from io import BytesIO
+from .dbManagers import getCommentReactions, getPostData, getUser, GetPostData, sendGroup
+from .types import PostReactionType, PostType, ReactOrUnReact
 import cloudinary
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from typing import Optional, Union, AnyStr
+from django.http import HttpRequest
 import enum
 
 # Create your views here.
@@ -53,29 +50,8 @@ err_415 = {"status": False, "status_code": 415}
 err_416 = {"status": False, "status_code": 416}
 
 
-class PostType(enum.StrEnum):
-    POST = "posts"
-    NEWSPOST = "news"
-    POSTIMAGE = "postImage"
-    VIDEO = "videos"
-
-
-class PostReactionType(enum.StrEnum):
-    LIKE = "Like"
-    LOVE = "Love"
-    HAPPY = "Happy"
-    WOW = "Wow"
-    ANGRY = "Angry"
-    SAD = "Sad"
-
-
-class ReactOrUnReact(enum.StrEnum):
-    REACT = "react"
-    UNREACT = "unReact"
-
-
 class ChangePrivacy(APIView):
-    def get(self, request, id, privacy):
+    def get(self, request:HttpRequest, id:str, privacy:str):
         if request.user.is_authenticated:
             try:
                 posts = Post.objects.get(id=id, creator=request.user)
@@ -106,7 +82,7 @@ class ChangePrivacy(APIView):
 
 
 class DeletePost(APIView):
-    def get(self, request, postId):
+    def get(self, request:HttpRequest, postId:str):
         if request.user.is_authenticated:
             try:
                 posts = Post.objects.get(id=postId, creator=request.user)
@@ -149,7 +125,7 @@ class DeletePost(APIView):
 class GetPostDataById(APIView):
     success = {"status": True, "status_code": 200}
 
-    def get(self, request, postId):
+    def get(self, request:HttpRequest, postId:str):
         if request.user.is_authenticated:
             post = Post.objects.filter(Q(id=postId) | Q(images_url__id=postId) | Q(videos_url__id=postId)).first()
             if post is None:
@@ -193,7 +169,7 @@ class GetPostDataById(APIView):
 
 # @transaction.atomic
 class upload(APIView):
-    def getType(self, request):
+    def getType(self, request:HttpRequest):
         images = request.FILES.getlist('image', )
         videos = request.FILES.getlist('video', )
         if images == [] and videos == []:
@@ -270,7 +246,7 @@ class upload(APIView):
 
 
 class uploadTextPost(APIView):
-    def post(self, request):
+    def post(self, request:HttpRequest):
         me = request.user
         if me.is_authenticated:
             try:
@@ -289,7 +265,7 @@ class uploadTextPost(APIView):
 
 
 class is_like(APIView):
-    def post(self, request):
+    def post(self, request:HttpRequest):
         post_id = request.data['post_id']
         user = request.user
         like_filter = LikePost.objects.filter(post_id=post_id, username=user).first()
@@ -300,7 +276,7 @@ class is_like(APIView):
 
 
 class Like_Post(APIView):
-    def GetPostData(self, post_id, post_type):
+    def GetPostData(self, post_id:str, post_type:PostType) -> Union[Post, News, PostImage]:
         if post_type == PostType.POST:
             try:
                 # print("Post method call")
@@ -337,7 +313,7 @@ class Like_Post(APIView):
         else:
             return None
 
-    def AddToPost(self, post) -> int:
+    def AddToPost(self, post:Union[Post, News]) -> int:
         try:
             post.NoOflike = post.NoOflike + 1
             post.update()
@@ -351,7 +327,7 @@ class Like_Post(APIView):
         except:
             pass
 
-    def MinusToPost(self, post):
+    def MinusToPost(self, post:Union[News, Post]) -> int:
         try:
             if post.NoOflike is 0:
                 return post.NoOflike
@@ -369,7 +345,7 @@ class Like_Post(APIView):
         except:
             pass
 
-    def post(self, request):
+    def post(self, request:HttpRequest):
         user: AbstractBaseUser = request.user
         if user.is_authenticated:
             try:
@@ -379,11 +355,11 @@ class Like_Post(APIView):
                 reactionType = request.data['reactionType']
                 TYPE = request.data['type']
             except KeyError:
-                err_403['message'] == "keyError"
+                err_403['message'] = "keyError"
                 return Response(err_403)
             post = self.GetPostData(post_id, post_type)
             if post == None:
-                err_404['message'] == "not found"
+                err_404['message'] = "not found"
                 return Response(err_404)
             try:
 
@@ -515,26 +491,6 @@ class MyPostListView(APIView):
         return JsonResponse(self.err)
 
 
-def getUser(user):
-    try:
-        a = User.objects.get(id=user)
-        return a
-    except:
-        pass
-    try:
-        a = User.objects.get(username=user)
-        return a
-    except:
-        pass
-    try:
-        a = User.objects.get(email=user)
-        return a
-    except:
-        pass
-
-    return None
-
-
 class PostView(APIView):
     def get(self, request, user, page):
         if request.user.is_authenticated:
@@ -607,46 +563,19 @@ class MyGallery(APIView):
                          })
 
 
-def sendGroup(user: AbstractBaseUser, postId: str, id: str):
-    channel_layer = get_channel_layer()
-    group_name = postId
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {
-            "user": user.username,
-            "data_type": 7,
-            "commentId": str(id),
-            "type": "new_comment_deleted"
-        })
-    return
 
 
-def getPostData(post_id):
-    try:
-        post = Post.objects.get(id=post_id)
-        return post
-    except:
-        pass
-    try:
-        post = Post.objects.get(images_url__id=str(post_id))
-        return post.images_url.get(id=post_id)
-    except:
-        pass
-    try:
-        post = News.objects.get(id=str(post_id))
-        return post
-    except:
-        pass
-    return None
+
+
 
 
 class DeleteCommentView(APIView):
 
-    def get(self, request, id, postId):
+    def get(self, request:HttpRequest, Id, postId):
         if request.user.is_authenticated:
             user: AbstractBaseUser = request.user
             try:
-                comment: Comment = Comment.objects.get(id=id, user=user)
+                comment: Comment = Comment.objects.get(id=Id, user=user)
                 post = getPostData(post_id=postId)
             except Comment.DoesNotExist:
                 err_404['message'] = "invalid data"
@@ -662,57 +591,16 @@ class DeleteCommentView(APIView):
             if post.NoOfComment != 0:
                 post.NoOfComment = post.NoOfComment - 1
             post.save()
-            sendGroup(user=request.user, postId=postId, id=id)
+            sendGroup(user=request.user, postId=postId, id=Id)
             success['message'] = 'comment deleted'
             return Response(success)
         err_401['message'] = 'invalid user'
         return Response(err_401)
 
 
-def GetPostData(post_id, post_type):
-    if post_type == PostType.POST:
-        try:
-            # print("Post method call")
-            post = Post.objects.get(id=post_id)
-            return post
-        except Post.DoesNotExist:
-            return None
-
-    elif post_type == PostType.NEWSPOST:
-        try:
-            # print("news post method call")
-            post = News.objects.get(id=post_id)
-            return post
-        except News.DoesNotExist:
-            return None
-
-    elif post_type == PostType.POSTIMAGE:
-        try:
-            # print("post image method call")
-            post = Post.objects.get(images_url__id=str(post_id))
-            return post.images_url.get(id=post_id)
-        except Post.DoesNotExist:
-            return None
-
-    elif post_type == PostType.VIDEO:
-        try:
-            # print("video  method call")
-            post = Post.objects.get(id=post_id)
-            return post
-        except Post.DoesNotExist:
-            return None
-
-    else:
-        return None
 
 
-def getCommentReactions(Id):
-    return {"Like": len(Like_Comment.objects.filter(commentId=Id, reactionType="T")),
-            "Love": len(Like_Comment.objects.filter(commentId=Id, reactionType="L")),
-            "Happy": len(Like_Comment.objects.filter(commentId=Id, reactionType="H")),
-            "Sad": len(Like_Comment.objects.filter(commentId=Id, reactionType="S")),
-            "Wow": len(Like_Comment.objects.filter(commentId=Id, reactionType="W")),
-            "Angry": len(Like_Comment.objects.filter(commentId=Id, reactionType="A"))}
+
 
 
 class LikeComment(APIView):
@@ -777,6 +665,7 @@ class LikeComment(APIView):
                     cmt: dict = PostCommentSerializer(commentToReact).data
                     text = {
                         "id": cmt['id'],
+                        "user": cmt['user'],
                         "reactions": getCommentReactions(cmt['id']),
                         "type": "new_reaction_change"
                     }
@@ -792,6 +681,7 @@ class LikeComment(APIView):
                         pass
                     text = {
                         "id": cmt['id'],
+                        "user": cmt['user'],
                         "reactions": getCommentReactions(cmt['id']),
                         "type": "new_reaction_change"
                     }
@@ -818,13 +708,14 @@ class LikeComment(APIView):
                 cmt: dict = PostCommentSerializer(commentToReact).data
                 text = {
                     "id": cmt['id'],
+                    "user": cmt['user'],
                     "reactions": getCommentReactions(cmt['id']),
                     "type": "new_reaction_change"
                 }
                 self.sendToRoom(room=post.id, text_data=text)
                 text = {
                     'status': True,
-                    'message': 'comment_unReacted',
+                    'message': 'comment_unreacted',
                     'reaction': None,
                     'commentLike': newLikeNumber}
                 print(text)
