@@ -15,7 +15,7 @@ from django.db.models import Q, F
 from users.models import FollowerCount
 from time_.get_time import getStringTime
 from django.http import HttpRequest
-from .dbManager import getSeenNotification, getUnseenNotification, getAllNotification
+from .dbManager import getSeenNotification, getUnseenNotification, getAllNotification, pustNotifications, chatBadge, notifBadge, getOrCreateNotificationChannel, pushBadge
 from django.contrib.auth.models import AbstractBaseUser
 
 success = {"status": True, "status_code": 200}
@@ -85,6 +85,7 @@ class Seen(APIView):
                 notif.seen = True
                 notif.save()
                 self.success['message'] = "success"
+                pushBadge(creator=request.user)
                 return Response(success)
             except MyNotification.DoesNotExist:
                 err_404['message'] = "doest not exists"
@@ -199,8 +200,6 @@ class MyNotificationView(APIView):
             return Response(success)
         err_401['message'] = "invalid user"
         return Response(err_401)
-
-
 class LikeNotificationView:
     def saveLike(ako: AbstractBaseUser, postId: str) -> None:
         name = Profile.objects.get(user=ako).name
@@ -210,7 +209,7 @@ class LikeNotificationView:
             creator_usr = Post.objects.filter(Q(id=postId) | Q(images_url__id=str(postId))).first().creator
         except Post.DoesNotExist:
             return
-        creator = User.objects.get(username=creator_usr)
+        creator:AbstractBaseUser = User.objects.get(username=creator_usr)
         if creator.username == ako.username:
             name = "You"
         try:
@@ -221,12 +220,14 @@ class LikeNotificationView:
                 notif.subjectUser.all()) > 1 else f"{name} reacted in your posts"
             notif.title = title
             notif.save()
+            pushBadge(creator=creator)
             return
         except MyNotification.DoesNotExist:
             notif = MyNotification.objects.create(userToNotify=creator, subjectPostsId=postId, title=f"{name} reacted in your posts",
                                                   description="", notifType=2)
             notif.subjectUser.add(ako)
             notif.save()
+            pushBadge(creator=creator)
             return
 
     def deleteNotification(ako: AbstractBaseUser, postId: str) -> None:
@@ -262,7 +263,7 @@ class CommentNotificationView:
         name = Profile.objects.get(user=request.user).name
         if name == "" or name is None:
             name = request.user.username
-        creator = User.objects.get(
+        creator:AbstractBaseUser = User.objects.get(
             username=Post.objects.filter(Q(id=post_id) | Q(images_url__id=str(post_id))).first().creator)
         if creator == request.user:
             return
@@ -275,12 +276,14 @@ class CommentNotificationView:
 
             notif.seen = False
             notif.save()
+            pushBadge(creator=creator)
 
         except MyNotification.DoesNotExist:
             notif = MyNotification.objects.create(userToNotify=creator, subjectPostsId=post_id,
                                                   title=f"{name} commented on your posts", description="", notifType=3)
             notif.subjectUser.add(request.user)
             notif.save()
+            pushBadge(creator=creator)
         return
 
 
@@ -299,6 +302,7 @@ class FollowNotificationView:
                                         =request.user.username)
                 notif.subjectUser.add(request.user)
                 notif.save()
+                pushBadge(creator=following)
         else:
             if not MyNotification.objects.filter(userToNotify=following, subjectUser__pk=request.user.id,
                                                  title=f"{str(name)} followed you.").first():
@@ -308,6 +312,7 @@ class FollowNotificationView:
                                         =request.user.username)
                 notif.subjectUser.add(request.user)
                 notif.save()
+                pushBadge(creator=following)
 
     def deleteNotif(request: HttpRequest, following: AbstractBaseUser):
         name = Profile.objects.get(user=request.user).name

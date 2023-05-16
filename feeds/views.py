@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
 from django.http import JsonResponse, HttpRequest
 from django.db.models import Q
+from .dbManager import getAllRelations
+from django.contrib.auth.models import AbstractBaseUser
 
 # Create your views here.
 
@@ -23,23 +25,18 @@ class newsfeed(APIView):
             me = Profile.objects.filter(user = request.user).first()
             me = ProfileSerializer(me)
             limit = page*16
-            user_following_list = []
-            feed = []
-            
-            user_following = FollowerCount.objects.filter(follower=request.user)
-            for users in user_following:
-                user_following_list.append(users.user)
-            user_following_list.append(request.user)
+            user_following_list = getAllRelations(request.user)
+            feed_lists = Post.objects.none()
             for usernames in user_following_list:
                 if usernames == request.user:
-                    feed_lists = Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P") | Q(creator=usernames, privacy= "O")).order_by("-created_at")
-                elif FollowerCount.objects.filter(user = usernames, follower = request.user).first():
-                    feed_lists = Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P")).order_by("-created_at")
+                    feed_lists |= Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P") | Q(creator=usernames, privacy= "O"))
+                elif FollowerCount.objects.filter(user = usernames, follower = request.user).exists():
+                    feed_lists |= Post.objects.filter(Q(creator=usernames, privacy= "F") | Q(creator=usernames, privacy= "P"))
                 else:
-                    feed_lists = Post.objects.filter(creator=usernames, privacy= "P").order_by("-created_at")
-                for x in feed_lists:
-                    feed.append(x)
-            y = PostSerializer(feed[int(limit)-16:int(limit)], many = True)
+                    feed_lists |= Post.objects.filter(creator=usernames, privacy= "P")
+            feed_lists = feed_lists.order_by("-created_at")
+            
+            y = PostSerializer(feed_lists[int(limit)-16:int(limit)], many = True)
             for i in y.data:
                 if len(i['image_url']) == 0 and len(i['videos_url']) == 1:
                     i['media_type'] = 6
@@ -79,14 +76,26 @@ class VideosFeed(APIView):
     err = {'status': False, 'status_code': 401, 'message': 'user not logged'}
     def get(self, request:HttpRequest, page):
         if request.user.is_authenticated:
-            user = request.user
+            user:AbstractBaseUser = request.user
             me = Profile.objects.filter(user = user).first()
             me = ProfileSerializer(me)
             limit = page*16
-            all_creators = FollowerCount.objects.filter(follower = user)
-            video_feed = []
+            all_creators = getAllRelations(user=user)
+            
+            video_feed = Post.objects.none()
             for creator in all_creators:
-                try:
+                creator:AbstractBaseUser = creator
+                if creator.username == request.user.username:
+                    video_feed |= Post.objects.filter(creator=user.pk, media_type = 5)
+                elif FollowerCount.objects.filter(user = creator.pk, follower = request.user).exists():
+                    video_feed |= Post.objects.filter(Q(creator = creator.pk, privacy ="F", media_type = 5) | Q(creator = creator.pk, privacy ="P", media_type = 5))
+                else:
+                    video_feed |=  Post.objects.filter(creator = creator.pk, privacy = "P", media_type = 5)
+                    
+            DATA = PostSerializer(video_feed[int(limit)-16:int(page)*16], many = True).data
+            
+            """
+            try:
                     post = Post.objects.filter(creator = user, media_type = 5).order_by("-created_at")
                     video_feed.extend(PostSerializer(post, many = True).data)
                 except Exception as e:
@@ -100,9 +109,11 @@ class VideosFeed(APIView):
                     user_all_posts = Post.objects.filter(creator = creator, privacy = "P", media_type = 5)
                     if not user_all_posts is None:
                         video_feed.extend(PostSerializer(user_all_posts, many = True).data)
-            DATA = video_feed[int(limit)-16:int(page)*16]
+            """
+            
+            
+            
             if len(DATA) < 16:
-                num = 16 -len(DATA)
                 a = 0
                 while True:
                     dagdag = Post.objects.filter(privacy = "P", media_type = 5).order_by("created_at")

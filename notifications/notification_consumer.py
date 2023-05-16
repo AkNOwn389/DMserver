@@ -5,18 +5,11 @@ from django.contrib.auth.models import AbstractBaseUser
 from chats.models import PrivateMessage, RoomManager
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .dbManager import getOrCreateNotificationChannel
+from .dbManager import getOrCreateNotificationChannel, chatBadge, notifBadge
 import json
 
 
-def notifBadge(user):
-    notif = MyNotification.objects.filter(userToNotify=user, seen=False)
-    return len(notif) if len(notif) < 100 else 99
 
-
-def chatBadge(user):
-    notif = RoomManager().get_all_unread_message(user=user)
-    return len(notif) if len(notif) < 100 else 99
 
 
 class NotificationBadgeSocket(AsyncWebsocketConsumer):
@@ -31,7 +24,7 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
         self.user:AbstractBaseUser = self.scope['user']
         if self.user.is_authenticated:
             await self.accept()
-            self.room = await getOrCreateNotificationChannel(user=self.user)
+            self.room = await database_sync_to_async(getOrCreateNotificationChannel)(user=self.user)
             await self.channel_layer.group_add(self.room, self.channel_name)
             await self.send(text_data=json.dumps({"message": "connection created"}))
             chat = await database_sync_to_async(chatBadge)(self.user)
@@ -39,12 +32,13 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({
                 'status': True,
                 'status_code': 200,
+                'type': 'new_notification_badge',
                 'notification': notif,
                 'chat': chat}))
 
     async def disconnect(self, close_code):
         print(f"socket close: {self.user}", close_code)
-        await self.channel_layer.group_remove(self.room, self.channel_name)
+        await self.channel_layer.group_discard(self.room, self.channel_name)
 
     async def receive(self, text_data):
         res = json.loads(text_data)
