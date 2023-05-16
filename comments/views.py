@@ -19,6 +19,7 @@ from .commentManager import save_comment
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from typing import Union, Optional
+from django.http import HttpRequest
 success = {"status": True, "status_code": 200}
 err_401 = {"status": False, "status_code": 401}
 err_402 = {"status": False, "status_code": 402}
@@ -149,7 +150,7 @@ def commentNaNatural(request) -> Response:
 
 
 class SendComment(APIView):
-    def put(self, request, commentType):
+    def put(self, request:HttpRequest, commentType):
         user: AbstractBaseUser = request.user
         if user.is_authenticated:
             if getRoom(postId=request.data['postId']):
@@ -175,7 +176,7 @@ class SendComment(APIView):
                     "message": "post is not valid"
                 })
 
-    def post(self, request, commentType):
+    def post(self, request:HttpRequest, commentType):
         user: AbstractBaseUser = request.user
         if user.is_authenticated:
             if getRoom(postId=request.data['postId']):
@@ -214,7 +215,7 @@ class CommentView(APIView):
 
         return None
 
-    def post(self, request):
+    def post(self, request:HttpRequest):
         if request.user.is_authenticated:
             user: AbstractBaseUser = request.user
             user_profile = Profile.objects.get(user=user)
@@ -252,7 +253,7 @@ class CommentView(APIView):
         err_401['message'] = 'invalid user'
         return JsonResponse(err_401)
 
-    def get(self, request, id, page):
+    def get(self, request:HttpRequest, id, page):
         if request.user.is_authenticated:
             page = page * 16
             comment = CommentTable.objects.filter(post_id=id).order_by("-created")
@@ -271,7 +272,7 @@ class CommentView(APIView):
                 i['Followed'] = isFollowed(request.user, i['user'])
                 i['Follower'] = isFollower(request.user, i['user'])
                 i['created'] = getStringTime(i['created'])
-                if Like_Comment.objects.filter(user=request.user,commentId=i['id']).exists():
+                if Like_Comment.objects.filter(user=request.user, commentId=i['id']).exists():
                     i['is_like'] = True
                     i['reactionType'] = LikesCommentSerializer(Like_Comment.objects.filter(commentId=i['id'], user=request.user).first()).data['reactionType']
                 else:

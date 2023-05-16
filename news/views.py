@@ -10,7 +10,7 @@ from posts.serializers import LikesPostSerializer
 import re
 # Create your views here.
 
-class GetNew(APIView):
+class GetNews(APIView):
     def get(self, request, page):
         user:AbstractBaseUser = request.user
         if user.is_authenticated:

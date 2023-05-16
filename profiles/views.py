@@ -165,7 +165,7 @@ class ProfilePictureUpdate(APIView):
             caption = request.data["caption"]
         except KeyError:
             caption = ""
-        new_post = Post.objects.create(creator_full_name = profile.name, creator_id = request.user.id, description = caption, media_type = 3, title = "Update here profile picture")
+        new_post = Post.objects.create(creator_full_name = profile.name, creator_id = request.user.id, description = caption, media_type = 3, title ="Update here profile picture")
         new_post.images_url.create(image = profile.profileimg)
         new_post.save()
         return Response(success)
@@ -191,12 +191,12 @@ class ProfilePictureUpdate(APIView):
         
 class ProfileCoverUpdate(APIView):
     def upload_image(self, request):
-        profile = Profile.objects.get(user = request.user)
+        profile:Profile = Profile.objects.get(user = request.user)
         try:
             caption = request.data["caption"]
         except KeyError:
             caption = ""
-        new_post = Post.objects.create(creator_full_name = profile.name, creator_id = request.user.id, description = caption, media_type = 4, title = "Update here cover photo")
+        new_post = Post.objects.create(creator_full_name = profile.name, creator_id = request.user.id, description = caption, media_type = 4, title ="Update here cover photo")
         new_post.images_url.create(image = profile.bgimg)
         new_post.save()
         return Response(success)

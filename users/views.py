@@ -23,6 +23,7 @@ from smtplib import SMTPRecipientsRefused
 import random, uuid
 from django.utils import timezone
 from datetime import datetime
+from django.http import HttpRequest
 import time
 
 
@@ -76,7 +77,7 @@ def isOnline(user=None, username = None) -> bool:
         return False
 
 class BahaviorLoginEvent(APIView):
-    def get(self, request):
+    def get(self, request:HttpRequest):
         user:AbstractBaseUser = request.user
         try:
             if user.is_authenticated:
@@ -103,7 +104,7 @@ class BahaviorLoginEvent(APIView):
                                     "username": None})
 
 class user_suggested(APIView):
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page:int):
         if request.user.is_authenticated:
             page=page*16
             user_following = FollowerCount.objects.filter(Q(follower=request.user) | Q(user = request.user))
@@ -145,7 +146,7 @@ class user_suggested(APIView):
             return JsonResponse({'status': True, 'status_code': 200, 'message': 'user list retrive', 'data': user_profile})
         return JsonResponse({'status': 401,'message': 'user not logged'})
 class Follow(APIView):
-    def get(self, request, user):
+    def get(self, request:HttpRequest, user:str):
         if request.user.is_authenticated:
             if request.user.username == user:
                 return JsonResponse({"status":False, "status_code": 0, "message": "invalid data"})
@@ -166,7 +167,7 @@ class Follow(APIView):
         return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
     
 class DeniedFollow(APIView):
-    def get(self, request, user):
+    def get(self, request:HttpRequest, user:str):
         if request.user.is_authenticated:
             if request.user.username == user:
                 return JsonResponse({
@@ -201,7 +202,7 @@ class DeniedFollow(APIView):
             'message': 'user not logged'
             })
 class get_follower(APIView):
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page:int):
         if request.user.is_authenticated:
             user = request.user
             usr = FollowerCount.objects.filter(user=user)
@@ -241,7 +242,7 @@ class get_follower(APIView):
         return JsonResponse(err_401)
     
 class get_following_list(APIView):
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page:int):
         if request.user.is_authenticated:
             user = request.user
             post_list = FollowerCount.objects.filter(follower=user)
@@ -280,7 +281,7 @@ class get_following_list(APIView):
         err_401['message'] = "invalid cridential"
         return Response(err_401)
 class CancelRequest(APIView):
-    def get(self, request, user):
+    def get(self, request:HttpRequest, user:str):
         if request.user.is_authenticated:
             try:
                 usr = User.objects.get(username = user)
@@ -312,7 +313,7 @@ class CancelRequest(APIView):
     
 
 class get_friend(APIView):
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page:int):
         if request.user.is_authenticated:
             limit = page*16
             friend = []
@@ -364,7 +365,7 @@ class get_friend(APIView):
         return JsonResponse(err_401)
 
 class logout(APIView):
-    def post(self, request):
+    def post(self, request:HttpRequest):
         if request.user.is_authenticated:
             key = request.headers['Authorization'].split()[1]
             refresh = request.data['refresh_token']
@@ -383,7 +384,7 @@ class logout(APIView):
             """
             return JsonResponse({'status': True, 'message': 'user logged-out'})
 class logoutAll(APIView):
-    def post(self, request):
+    def post(self, request:HttpRequest):
         if request.user.is_authenticated:
             user = User.objects.filter(username = request.user).first()
             if user is not None:
@@ -400,7 +401,7 @@ class logoutAll(APIView):
                 return JsonResponse({'status': True, 'message': 'all account logged-out'})
         
 class login(APIView):
-    def post(self, request):
+    def post(self, request:HttpRequest):
         username = request.data['username']
         password = request.data['password']
         user = User.objects.filter(username = username).first()
@@ -463,7 +464,7 @@ class crateSignupCode(APIView):
         except SMTPRecipientsRefused:
             return False
         
-    def post(self, request):
+    def post(self, request:HttpRequest):
         id = uuid.uuid4()
         email = request.data['email']
         username = request.data['username']
@@ -536,7 +537,7 @@ class signup(APIView):
 
 
 
-    def post(self, request):
+    def post(self, request:HttpRequest):
         code = request.data['code']
         regId = request.data['cridential']
         username = request.data['username']

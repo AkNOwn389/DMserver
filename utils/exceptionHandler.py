@@ -13,7 +13,7 @@ def custom_exception_handler(exc, context):
         #'TypeError':_handle_Type__error_,
         'InvalidToken': _handle_invalidated_,
         'MethodNotAllowed': _handle_method_error_,
-        'DoesNotExist': _handle_http404__error
+        #'DoesNotExist': _handle_http404__error
     }
 
     response = exception_handler(exc, context)

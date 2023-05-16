@@ -8,7 +8,7 @@ from time_.get_time import getStringTime
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from profiles.views import getAvatarByUsername
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 from django.db.models import Q
 
 # Create your views here.
@@ -18,7 +18,7 @@ class newsfeed(APIView):
     err = {'status': False, 'status_code': 401, 'message': 'user not logged'}
     data = {'status_code': 200, 'status': True, 'message': 'success'}
 
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page:int):
         if request.user.is_authenticated:
             me = Profile.objects.filter(user = request.user).first()
             me = ProfileSerializer(me)
@@ -77,7 +77,7 @@ class newsfeed(APIView):
         return JsonResponse(self.err)
 class VideosFeed(APIView):
     err = {'status': False, 'status_code': 401, 'message': 'user not logged'}
-    def get(self, request, page):
+    def get(self, request:HttpRequest, page):
         if request.user.is_authenticated:
             user = request.user
             me = Profile.objects.filter(user = user).first()
@@ -93,7 +93,7 @@ class VideosFeed(APIView):
                     pass
 
                 if FollowerCount.objects.filter(user = creator.user, follower = user).first():
-                    user_all_posts = Post.objects.filter(Q(creator = creator.user, privacy = "F", media_type = 5) | Q(creator = creator.user, privacy = "P", media_type = 5))
+                    user_all_posts = Post.objects.filter(Q(creator = creator.user, privacy ="F", media_type = 5) | Q(creator = creator.user, privacy ="P", media_type = 5))
                     if not user_all_posts is None:
                         video_feed.extend(PostSerializer(user_all_posts, many = True).data)
                 else:
@@ -201,6 +201,6 @@ class MyPostView(APIView):
         return JsonResponse(self.err)
 
 class NewsView(APIView):
-    def get(self, request):
+    def get(self, request:HttpRequest):
         if request.user.is_authenticated:
             pass
