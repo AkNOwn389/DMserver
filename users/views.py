@@ -524,15 +524,20 @@ class signup(APIView):
                     'tokenType': 'Bearer',
                     'accesstoken': str(refresh.access_token)
                     }})
+        
     def checkCridential(self, code, regId, email):
-        a = UserRegisterCode.objects.filter(expiration__gt=Now())
+        #a = UserRegisterCode.objects.filter(expiration__gt=Now())
         try:
-            b = a.get(id = regId)
-        except UserRegisterCode.DoesNotExist:
+            b = UserRegisterCode.objects.get(id = str(regId), expiration__gt=Now())
+            print(b)
+        except UserRegisterCode.DoesNotExist as e:
+            print(f"Error: {e}")
             return False
-        except ValidationError:
+        except ValidationError as e:
+            print(f"Error: {e}")
             return False
         if b.email == email and b.code == code:
+            print(f"New success registrations")
             return True
 
 
@@ -545,6 +550,7 @@ class signup(APIView):
         name = request.data['name'].split()
         password = request.data['password']
         password2 = request.data['password2']
+        print(code, regId, username, email, name, password, password2)
         if password != password2:
             return Response({
                 'status': False,
@@ -552,18 +558,35 @@ class signup(APIView):
             })
  
         if User.objects.filter(email=email).exists():
-            return JsonResponse({
+            return Response({
                 'status':False,
                 'message': 'Email already exists'})
         
         if User.objects.filter(username=username).exists():
-            return JsonResponse({
+            return Response({
                 'status':False,
                 'message': 'Username already exists'})
         
-        if not self.checkCridential(code, regId, email):
-            return JsonResponse({"status": False, "status_code": 200, "message": "invalid cridentials or expired code"})
         
-
-        return self.createAccount(name = name, username=username, email=email, password=password)
+        if UserRegisterCode.objects.filter(id = regId, expiration__gt = Now()).exists():
+            registerCodeTable = UserRegisterCode.objects.get(id = str(regId))
+            
+            if str(registerCodeTable.code).strip() != str(code).strip():
+                print(registerCodeTable.code, code)
+                return Response({"status": False, 
+                                 "status_code": 200, 
+                                 "message": "invalid code"
+                                 })
+            elif str(registerCodeTable.email).strip() != str(email).strip():
+                return Response({"status": False, 
+                                 "status_code": 200, 
+                                 "message": "invalid registered email"
+                                 })
+            else:
+                return self.createAccount(name = name, username=username, email=email, password=password)
+        else:
+            return Response({"status": False, 
+                             "status_code": 200, 
+                             "message": "Expired code"
+                             })
    
