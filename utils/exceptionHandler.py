@@ -4,17 +4,18 @@ from django.http import JsonResponse
 
 def custom_exception_handler(exc, context):
     handlers = {
-        #'ValidationError': _handler_generic_error,
+        'ValidationError': _handler_generic_error,
         'Http404':_handle_http404__error,
         'PermissionDenied':_handler_generic_error,
         'NotAuthenticated':_handle_authentication_error,
         'Unauthorized':_handle_authentication_error,
         'AuthenticationFailed':_handle_invalidated_,
-        #'TypeError':_handle_Type__error_,
+        'TypeError':_handle_Type__error_,
         'InvalidToken': _handle_invalidated_,
         'MethodNotAllowed': _handle_method_error_,
-        #'DoesNotExist': _handle_http404__error,
+        'DoesNotExist': _handle_http404__error,
         'UnicodeDecodeError': _handle_unicodeError__,
+        'InvalidToken': __handle_invalid_token__,
     }
 
     response = exception_handler(exc, context)
@@ -23,11 +24,26 @@ def custom_exception_handler(exc, context):
         response.data['status_code'] = response.status_code
 
     exception_class = exc.__class__.__name__
-    print(exception_class)
+    print(f"\033[1;91mException detected: \033[1;93m{exception_class}\033[1;97m")
 
     if exception_class in handlers:
         return handlers[exception_class](exc, context, response)
     return response
+
+
+
+
+
+
+#CHILD
+
+def __handle_invalid_token__(exc, context, response):
+    data = {"status":False,
+        "status_code": response.status_code,
+        "message": str(exc.__class__.__name__),
+        "id": None,
+        "username": None}
+    return JsonResponse(data=data)
 
 def _handle_unicodeError__(exc, context, response):
     data = {"status":False,

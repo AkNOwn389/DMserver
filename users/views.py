@@ -508,7 +508,7 @@ class login(APIView):
 class crateSignupCode(APIView):
     def sendEmailFromUser(self, code, useremail):
         email = EmailMessage('Thanks for signing directmessage app here\'s your code',
-                             'your code is: {}.'.format(str(code)),
+                             '(DM) Your one time otp code is  {} \nIf you not requesting otp do not share this on others.'.format(str(code)),
                              settings.EMAIL_HOST_USER,
                              [useremail],
                              )

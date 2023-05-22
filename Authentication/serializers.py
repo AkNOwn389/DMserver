@@ -2,6 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Refr
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
+from django.contrib.auth.models import AbstractBaseUser
 from .models import UserRegisterCode
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
@@ -10,15 +11,28 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        data = super(CustomTokenRefreshSerializer, self).validate(attrs)
+        # change key names here
+        data['accesstoken'] = data.pop('access')
+        data['refresh_token'] = data.pop('refresh')
+        return data
+
+
 class UserRegisterCodeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserRegisterCode
         fields = ['id', 'email', 'code', 'expiration']
+        
+        
 
 class TokenObtainPairResponseSerializer(serializers.Serializer):
-    access = serializers.CharField()
-    refresh = serializers.CharField()
+    accessToken = serializers.CharField()
+    refreshToken = serializers.CharField()
     
     def create(self, validated_data):
         raise NotImplementedError()
@@ -38,8 +52,8 @@ class DecoratedTokenObtainPairView(TokenObtainPairView):
 
 
 class TokenRefreshResponseSerializer(serializers.Serializer):
-    access = serializers.CharField()
-    refresh = serializers.CharField()
+    accessToken = serializers.CharField()
+    refreshToken = serializers.CharField()
     
     def create(self, validated_data):
         raise NotImplementedError()
@@ -96,7 +110,7 @@ class DecoratedTokenBlacklistView(TokenBlacklistView):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
-    def get_token(cls, user):
+    def get_token(cls, user:AbstractBaseUser):
         token = super().get_token(user)
 
         # Add custom claims
@@ -105,6 +119,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         # ...
 
         return token
+    
+
     
 """
 check_password(raw_password: str) → None

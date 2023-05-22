@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from Authentication.views import CustomTokenRefreshView
 
 urlpatterns = [
     path('post/', include('posts.urls')),
@@ -13,6 +14,6 @@ urlpatterns = [
     path('user/', include('users.urls')),
     path('news/', include('news.urls')),
     path('notification/', include('notifications.urls')),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+   # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
 ]

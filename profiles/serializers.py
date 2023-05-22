@@ -2,6 +2,7 @@ from rest_framework import serializers
 from profiles.models import Profile
 from posts.serializers import ImagesSerializer
 from .models import RecentSearch
+from django.contrib.auth.models import User
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -14,6 +15,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     fields = ['user', 'profileimg', 'bgimg', 'bio', 'location', 'name', 'interested', 'gender', 'school', 'works']
   def to_representation(self, instance):
     rep = super().to_representation(instance)
+    rep['id'] = User.objects.get(username = instance.user).id
     rep["hobby"] = ImagesSerializer(instance.hobby.all(), many=True).data
     return rep
   
