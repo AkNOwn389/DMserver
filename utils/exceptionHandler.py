@@ -13,7 +13,8 @@ def custom_exception_handler(exc, context):
         #'TypeError':_handle_Type__error_,
         'InvalidToken': _handle_invalidated_,
         'MethodNotAllowed': _handle_method_error_,
-        #'DoesNotExist': _handle_http404__error
+        #'DoesNotExist': _handle_http404__error,
+        'UnicodeDecodeError': _handle_unicodeError__,
     }
 
     response = exception_handler(exc, context)
@@ -27,7 +28,15 @@ def custom_exception_handler(exc, context):
     if exception_class in handlers:
         return handlers[exception_class](exc, context, response)
     return response
-    
+
+def _handle_unicodeError__(exc, context, response):
+    data = {"status":False,
+        "status_code": response.status_code,
+        "message":"unicodeError",
+        "id": None,
+        "username": None}
+    return JsonResponse(data=data)
+
 def _handle_invalidated_(exc, context, response):
     data = {"status":False,
         "status_code": response.status_code,

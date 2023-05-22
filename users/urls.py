@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 urlpatterns = [
+    path('isAuthenticated', views.IsAuthenticated.as_view(), name="isAuthenticated"),
+    path('getUserDetail', views.GetUserData.as_view(), name="getUserDetail"),
     path('following/page=<int:page>', views.get_following_list.as_view(), name="following"),
     path('followers/page=<int:page>', views.get_follower.as_view(), name='followers'),
     path('usersuggested/page=<int:page>', views.user_suggested.as_view(), name='usersuggested'),

@@ -25,6 +25,7 @@ from django.utils import timezone
 from datetime import datetime
 from django.http import HttpRequest
 import time
+from time_.get_time import getStringTime, getStringTimeForSwitchAccount
 
 
 success = {"status": True, "status_code": 200}
@@ -310,7 +311,61 @@ class CancelRequest(APIView):
             'status_code': 401,
             'message': 'user not logged'
         })
-    
+
+class IsAuthenticated(APIView):
+    def post(self, request:HttpRequest):
+        if request.user.is_authenticated:
+            profile:Profile = Profile.objects.get(user = request.user)
+            user:AbstractBaseUser = request.user
+            return Response({
+                'status': True,
+                'status_code': 200,
+                'message': 'success',
+                'data':{
+                    'username': user.username,
+                    'id': user.pk,
+                    'name': profile.name,
+                }
+            })
+        else:
+            return Response({
+                'status': False,
+                'status_code': 401,
+                'message': 'invalid user',
+            })
+
+class GetUserData(APIView):
+    def post(self, request:HttpRequest):
+        if request.user.is_authenticated:
+            user:AbstractBaseUser = request.user
+            userToGet = request.data['username']
+            print(userToGet)
+            if User.objects.filter(username = userToGet).exists():
+                user2:AbstractBaseUser = User.objects.get(username = userToGet)
+                profile:dict = ProfileSerializer(Profile.objects.get(user = user2)).data
+                return Response({
+                    'status': True,
+                    'status_code': 200,
+                    'message': 'success',
+                    'username': str(user2.username),
+                    'image': str(profile['profileimg']),
+                    'id': str(user2.pk),
+                    'name': str(profile['name']),
+                    'lastLogin': str(user2.last_login),
+                    'lastLoginDisplay': getStringTimeForSwitchAccount(user2.last_login)
+                })
+            else:
+                return Response({
+                    'status': False,
+                    'status_code': 404,
+                    'message': 'user not exists.'
+                })
+        else:
+            return Response({
+                'status': False,
+                'status_code': 401,
+                'message': 'invalid user',
+            })
 
 class get_friend(APIView):
     def get(self, request:HttpRequest, page:int):

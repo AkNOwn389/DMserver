@@ -22,7 +22,6 @@ class Hobby(models.Model):
 
 
 class Profile(models.Model):
-    objects = None
     GENDER_CHOICES = (
         ('M', 'Male'),
         ('F', 'Female'),

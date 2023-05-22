@@ -73,9 +73,55 @@ def getStringTimeold(time):
         hour = str(int(time_[0]) -12)
     return f"{theTime} {hour}:{time_[1]}{oras}"
 
-
+def getStringTimeForSwitchAccount(date:str) -> str:
+    "2023-05-21 20:20:02.193186+00:00"
+    try:
+        date:datetime = datetime.fromisoformat(str(date).replace(" ", "T"))
+    except ValueError:
+        return date
+    except UnicodeDecodeError:
+        print("value error in getstringtime")
+        return date
+    try:
+        now:datetime = datetime.now(timezone.utc)
+        date:datetime = date.astimezone(now.tzinfo)
+        diff:timedelta = now - date
+        if diff.days >= 365:
+            years = diff.days // 365
+            if years > 1:
+                return f'{years} years ago'
+            else:
+                return f'{years} year ago'
+        elif diff.days >= 30:
+            months = diff.days // 30
+            if months is 1:
+                return f'{months}m'
+            else:
+                return date.strftime('%b %d')
+        elif diff.days >= 7:
+            weeks = diff.days // 7
+            if weeks is 1:
+                return f'{weeks}w'
+            else:
+                return date.strftime('%b %d')
+        elif diff.days > 0:
+            day = diff.days
+            return f'{day}d'
+        elif diff.seconds > 3600:
+            hours = diff.seconds // 3600
+            return f'{hours}h'
+        elif diff.seconds > 60:
+            minute = diff.seconds // 60
+            return f'{minute}m'
+        elif diff.seconds < 60 and diff.seconds > 15:
+            return f'{diff.seconds}s'
+        else:
+            return 'just now'
+    except:
+        return date
 
 def getStringTime(date:str) -> str:
+    print(date)
     try:
         date:datetime = datetime.fromisoformat(date.replace('Z', '+00:00'))
     except ValueError:
