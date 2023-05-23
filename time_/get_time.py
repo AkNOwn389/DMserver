@@ -121,7 +121,6 @@ def getStringTimeForSwitchAccount(date:str) -> str:
         return date
 
 def getStringTime(date:str) -> str:
-    print(date)
     try:
         date:datetime = datetime.fromisoformat(date.replace('Z', '+00:00'))
     except ValueError:

@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.timezone import now
+from django.utils import timezone
 import uuid
 
 
@@ -15,7 +15,7 @@ class News(models.Model):
     description = models.TextField(blank=True)
     url = models.URLField(blank=False, null=False)
     urlToImage = models.URLField(blank=True)
-    publishedAt = models.DateTimeField(default=now())
+    publishedAt = models.DateTimeField(default=timezone.now())
     content = models.TextField(blank=True)
     noOfLike = models.IntegerField(default=0)
     NoOfComment = models.IntegerField(default=0)

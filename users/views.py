@@ -83,7 +83,7 @@ class BahaviorLoginEvent(APIView):
         try:
             if user.is_authenticated:
                 usr = User.objects.get(pk = user.pk)
-                usr.last_login = datetime.now()
+                usr.last_login = timezone.now()
                 usr.save()
                 return JsonResponse({"status":True,
                                     "status_code": 0,
@@ -313,7 +313,7 @@ class CancelRequest(APIView):
         })
 
 class IsAuthenticated(APIView):
-    def post(self, request:HttpRequest):
+    def get(self, request:HttpRequest):
         if request.user.is_authenticated:
             profile:Profile = Profile.objects.get(user = request.user)
             user:AbstractBaseUser = request.user
@@ -333,6 +333,12 @@ class IsAuthenticated(APIView):
                 'status_code': 401,
                 'message': 'invalid user',
             })
+class RecoverAccountView(APIView):
+    def post(self, request:HttpRequest):
+        email = request.data['email']
+        otpCode = request.data['code']
+    def get(self, request:HttpRequest, email):
+        pass
 
 class GetUserData(APIView):
     def post(self, request:HttpRequest):
@@ -343,7 +349,7 @@ class GetUserData(APIView):
             if User.objects.filter(username = userToGet).exists():
                 user2:AbstractBaseUser = User.objects.get(username = userToGet)
                 profile:dict = ProfileSerializer(Profile.objects.get(user = user2)).data
-                return Response({
+                text = {
                     'status': True,
                     'status_code': 200,
                     'message': 'success',
@@ -353,7 +359,9 @@ class GetUserData(APIView):
                     'name': str(profile['name']),
                     'lastLogin': str(user2.last_login),
                     'lastLoginDisplay': getStringTimeForSwitchAccount(user2.last_login)
-                })
+                }
+                print(text)
+                return Response(text, status=200)
             else:
                 return Response({
                     'status': False,
