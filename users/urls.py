@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 urlpatterns = [
+    path('recovery-requests-otp', views.RecoverAccountRequestOthenticationView.as_view()),
+    path('recoverAccount', views.RecoverAccountView.as_view(), name="recover_account"),
     path('isAuthenticated', views.IsAuthenticated.as_view(), name="isAuthenticated"),
     path('getUserDetail', views.GetUserData.as_view(), name="getUserDetail"),
     path('following/page=<int:page>', views.get_following_list.as_view(), name="following"),

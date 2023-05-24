@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
 from django.contrib.auth.models import AbstractBaseUser
-from .models import UserRegisterCode
+from .models import UserRegisterCode, UserRecoveryCode, RecoveryAccountSpecialId
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     TokenObtainPairView,
@@ -26,7 +26,19 @@ class UserRegisterCodeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserRegisterCode
-        fields = ['id', 'email', 'code', 'expiration']
+        fields = ['id', 'email', 'code', 'expiration', 'date', 'attempt']
+        
+class UserRecoveryCodeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserRecoveryCode
+        fields = ['id', 'email', 'verificationCode', 'expiration', 'date', 'attempt']
+
+class RecoverAccountSpecialIdSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = RecoveryAccountSpecialId
+        fields = ['id', 'accountToRecover', 'email', 'date', 'attempt']
         
         
 

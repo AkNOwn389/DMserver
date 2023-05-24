@@ -2,8 +2,8 @@ from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.tokens import BlacklistedToken, OutstandingToken
-from Authentication.models import UserRegisterCode
-from Authentication.serializers import UserRegisterCodeSerializer
+from Authentication.models import UserRegisterCode, UserRecoveryCode, RecoveryAccountSpecialId
+from Authentication.serializers import UserRegisterCodeSerializer, UserRecoveryCodeSerializer, RecoverAccountSpecialIdSerializer
 from users.models import FollowerCount
 from rest_framework.views import APIView
 from django.http import JsonResponse
@@ -24,6 +24,7 @@ import random, uuid
 from django.utils import timezone
 from datetime import datetime
 from django.http import HttpRequest
+from .dbManager import sendRecoveryCodeEmailFromUser, sendEmailFromUser
 import time
 from time_.get_time import getStringTime, getStringTimeForSwitchAccount
 
@@ -333,12 +334,163 @@ class IsAuthenticated(APIView):
                 'status_code': 401,
                 'message': 'invalid user',
             })
-class RecoverAccountView(APIView):
+class RecoverAccountRequestOthenticationView(APIView):
     def post(self, request:HttpRequest):
-        email = request.data['email']
-        otpCode = request.data['code']
-    def get(self, request:HttpRequest, email):
-        pass
+        try:
+            email = request.data['email']
+        except:
+            return Response({"status": False,
+                             "status_code": 403,
+                             "message": "email is required"
+                             })
+        if User.objects.filter(email = email).exists():
+            id = uuid.uuid4()
+            code = random.randint(100000, 999999)
+            expiration = datetime.now()+timedelta(minutes=5)
+            if UserRecoveryCode.objects.filter(email = email, expiration__gt = Now(), attempt = 5).exists():
+                return Response({"status": False,
+                                "status_code": 0,
+                                "message": "max attempt reach please wait 5 minutes"
+                                })
+            elif UserRecoveryCode.objects.filter(email = email, expiration__gt = Now()).exists():
+                current = UserRecoveryCode.objects.get(email = email, expiration__gt = Now())
+                return Response({"status": False,
+                                "status_code": 1,
+                                "message": "already requested please wait 5 minutes",
+                                "data": {
+                                    'requestId': current.id, 
+                                    'email': email}
+                                })
+            data = {"id": id, "email": email, "verificationCode": code, "expiration": str(expiration)}
+            serialiser = UserRecoveryCodeSerializer(data = data)
+            if serialiser.is_valid():
+                if sendRecoveryCodeEmailFromUser(code=code, useremail=email):
+                    serialiser.save()
+                    return Response({"status": True, 
+                                     "status_code": 200, 
+                                     "message": "authentication created", 
+                                     'data': {'requestId': id, 
+                                              'email': email
+                                              }
+                                     })
+                else:
+                    return Response({
+                        "status":False,
+                        "status_code": 403,
+                        "message": "system failure"
+                    })
+            return Response({
+                        "status":False,
+                        "status_code": 403,
+                        "message": "cridential error"
+                    })
+        else:
+            return Response({
+                        "status":False,
+                        "status_code": 403,
+                        "message": "Can't find connected account in this email."
+                    })
+class RecoverAccountView(APIView):
+    def put(self, request:HttpRequest):
+        try:
+            recoveryKey = request.data['recoveryKey']
+            user:str = request.data['user']
+            userId:str = request.data['userId']
+            email:str = request.data['email']
+            newPassword:str = request.data['newPassword']
+            newPasswordConfirm:str = request.data['newPasswordConfirm']
+        except:
+            return Response({
+                "status": False,
+                "status_code": 403,
+                "message": "missing credential"
+            })
+        
+        if str(newPassword) != str(newPasswordConfirm):
+            return Response({
+                "status": False,
+                "status_code": 403,
+                "message": "password not matche"
+            })
+            
+        if RecoveryAccountSpecialId.objects.filter(id = recoveryKey, accountToRecover = userId, email = email).exists():
+            RecoveryAccountSpecialId.objects.get(id = recoveryKey, accountToRecover = userId, email = email).delete()
+            user:AbstractBaseUser = User.objects.get(id = userId, username = user, email = email)
+            user.set_password(newPassword)
+            user.save()
+            
+            return Response({
+                "status": True,
+                "status_code": 200,
+                "message": "success"
+            })
+            
+        else:
+            return Response({
+                "status": False,
+                "status_code": 403,
+                "message": "invalid recovery key"
+            })
+        
+    def post(self, request:HttpRequest):
+        try:
+            email:str = request.data['email']
+            otpCode:str = request.data['code']
+            recoveryCodeId:str = request.data['requestId']
+        except:
+            return Response({
+                "status": False,
+                "status_code": 403,
+                "message": "missing credential"
+            })
+        if UserRecoveryCode.objects.filter(id = recoveryCodeId, expiration__gt = Now()).exists():
+            registerCodeTable = UserRecoveryCode.objects.get(id = str(recoveryCodeId))
+            if registerCodeTable.attempt >= 5:
+                return Response({"status": False, 
+                                 "status_code": 0,
+                                 "remaining_attempt": 0,
+                                 "message": "max attempt reach"
+                                 })
+            else:
+                if str(registerCodeTable.verificationCode).strip() != str(otpCode).strip():
+                    registerCodeTable.attempt += 1
+                    registerCodeTable.save()
+                    return Response({"status": False, 
+                                    "status_code": 200,
+                                    "remaining_attempt": 5-registerCodeTable.attempt,
+                                    "message": "invalid code",
+                                    })
+                elif str(registerCodeTable.email).strip() != str(email).strip():
+                    return Response({"status": False, 
+                                    "status_code": 200,
+                                    "remaining_attempt": 5-registerCodeTable.attempt,
+                                    "message": "invalid recovery email"
+                                    })
+                else:
+                    #Passes in security
+                    user:AbstractBaseUser = User.objects.get(email = email)
+                    data = {"accountToRecover": user, 'email': user.email}
+                    serializer = RecoverAccountSpecialIdSerializer(data=data)
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                        recoveryData = serializer.data
+                        return Response({
+                            "status": True,
+                            "status_code": 200,
+                            "message": "success",
+                            "data": {
+                                "max_password_change": 1,
+                                "recoveryKey": recoveryData['id'],
+                                "email": recoveryData['email'],
+                                "user":  user.username,
+                                "userId": user.pk,
+                            }
+                        })
+        else:
+            return Response({"status": False, 
+                             "status_code": 200, 
+                             "message": "Expired code"
+                             })
 
 class GetUserData(APIView):
     def post(self, request:HttpRequest):
@@ -514,19 +666,6 @@ class login(APIView):
             })
         
 class crateSignupCode(APIView):
-    def sendEmailFromUser(self, code, useremail):
-        email = EmailMessage('Thanks for signing directmessage app here\'s your code',
-                             '(DM) Your one time otp code is  {} \nIf you not requesting otp do not share this on others.'.format(str(code)),
-                             settings.EMAIL_HOST_USER,
-                             [useremail],
-                             )
-        email.fail_silently = False
-        try:
-            email.send()
-            return True
-        except SMTPRecipientsRefused:
-            return False
-        
     def post(self, request:HttpRequest):
         id = uuid.uuid4()
         email = request.data['email']
@@ -548,7 +687,7 @@ class crateSignupCode(APIView):
         data = {"id": id, "email": email, "username": username, "code": code, "expiration": str(expiration)}
         serialiser = UserRegisterCodeSerializer(data = data)
         if serialiser.is_valid():
-            if self.sendEmailFromUser(code=code, useremail=email):
+            if sendEmailFromUser(code=code, useremail=email):
                 serialiser.save()
                 return JsonResponse({"status": True, "status_code": 200, "message": "authentication created", 'data': {'regId': id, 'email': email, 'username': username}})
             
