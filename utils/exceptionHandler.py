@@ -4,7 +4,7 @@ from django.http import JsonResponse
 
 def custom_exception_handler(exc, context):
     handlers = {
-        'ValidationError': _handler_generic_error,
+        #'ValidationError': _handler_generic_error,
         'Http404':_handle_http404__error,
         'PermissionDenied':_handler_generic_error,
         'NotAuthenticated':_handle_authentication_error,

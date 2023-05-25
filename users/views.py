@@ -6,7 +6,6 @@ from Authentication.models import UserRegisterCode, UserRecoveryCode, RecoveryAc
 from Authentication.serializers import UserRegisterCodeSerializer, UserRecoveryCodeSerializer, RecoverAccountSpecialIdSerializer
 from users.models import FollowerCount
 from rest_framework.views import APIView
-from django.http import JsonResponse
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.core.mail import EmailMessage
@@ -86,20 +85,20 @@ class BahaviorLoginEvent(APIView):
                 usr = User.objects.get(pk = user.pk)
                 usr.last_login = timezone.now()
                 usr.save()
-                return JsonResponse({"status":True,
+                return Response({"status":True,
                                     "status_code": 0,
                                     "message":"ok",
                                     "id":str(user.id),
                                     "username": str(user.username)})
             else:
-                return JsonResponse({"status":False,
+                return Response({"status":False,
                                     "status_code": 401,
                                     "message":"ok",
                                     "id": None,
                                     "username": None})
         except Exception as e:
             print(e)
-            return JsonResponse({"status":False,
+            return Response({"status":False,
                                     "status_code": 403,
                                     "message":str(e),
                                     "id": None,
@@ -145,41 +144,41 @@ class user_suggested(APIView):
                 del i['bio']
                 i['Following'] = isFollowed(request.user, i['user'])
                 i['Follower'] = isFollower(request.user, i['user'])
-            return JsonResponse({'status': True, 'status_code': 200, 'message': 'user list retrive', 'data': user_profile})
-        return JsonResponse({'status': 401,'message': 'user not logged'})
+            return Response({'status': True, 'status_code': 200, 'message': 'user list retrive', 'data': user_profile})
+        return Response({'status': 401,'message': 'user not logged'})
 class Follow(APIView):
     def get(self, request:HttpRequest, user:str):
         if request.user.is_authenticated:
             if request.user.username == user:
-                return JsonResponse({"status":False, "status_code": 0, "message": "invalid data"})
+                return Response({"status":False, "status_code": 0, "message": "invalid data"})
             try:
                 following = User.objects.get(username = user)
             except:
-                return JsonResponse({'status': False, 'status_code':0, 'message': 'user not exists'})
+                return Response({'status': False, 'status_code':0, 'message': 'user not exists'})
             if FollowerCount.objects.filter(follower=request.user, user=following).first():
                 delete_follower = FollowerCount.objects.get(follower=request.user, user=following)
                 delete_follower.delete()
                 FollowNotificationView.deleteNotif(request=request, following=following)
-                return JsonResponse({'status':True,'status_code': 200, 'message': 'unfollowed'})
+                return Response({'status':True,'status_code': 200, 'message': 'unfollowed'})
             else:
                 new_follower = FollowerCount.objects.create(follower=request.user, user=following)
                 new_follower.save()
                 FollowNotificationView.Notify(request=request, following=following)
-                return JsonResponse({'status':True, 'status_code': 200, 'message': 'following'})
-        return JsonResponse({'status':False, 'status_code': 401, 'message': 'user not logged'})
+                return Response({'status':True, 'status_code': 200, 'message': 'following'})
+        return Response({'status':False, 'status_code': 401, 'message': 'user not logged'})
     
 class DeniedFollow(APIView):
     def get(self, request:HttpRequest, user:str):
         if request.user.is_authenticated:
             if request.user.username == user:
-                return JsonResponse({
+                return Response({
                     "status":False,
                     "status_code": 404,
                     "message": "invalid data"})
             try:
                 usr = User.objects.get(username = user)
             except:
-                return JsonResponse({
+                return Response({
                     'status': False,
                     'status_code':404,
                     'message': 'user not exists'})
@@ -198,7 +197,7 @@ class DeniedFollow(APIView):
                     'status_code': 404,
                     'message': 'request not exists'
                 })
-        return JsonResponse({
+        return Response({
             'status':False,
             'status_code': 401,
             'message': 'user not logged'
@@ -241,7 +240,7 @@ class get_follower(APIView):
             })
         
         err_401['message'] = "invalid cridential"
-        return JsonResponse(err_401)
+        return Response(err_401)
     
 class get_following_list(APIView):
     def get(self, request:HttpRequest, page:int):
@@ -469,27 +468,27 @@ class RecoverAccountView(APIView):
                 else:
                     #Passes in security
                     user:AbstractBaseUser = User.objects.get(email = email)
-                    data = {"accountToRecover": user, 'email': user.email}
-                    serializer = RecoverAccountSpecialIdSerializer(data=data)
-                    if serializer.is_valid(raise_exception=True):
-                        serializer.save()
-                        recoveryData = serializer.data
-                        return Response({
-                            "status": True,
-                            "status_code": 200,
-                            "message": "success",
-                            "data": {
-                                "max_password_change": 1,
-                                "recoveryKey": recoveryData['id'],
-                                "email": recoveryData['email'],
-                                "user":  user.username,
-                                "userId": user.pk,
-                            }
-                        })
+                    specialKey:RecoveryAccountSpecialId = RecoveryAccountSpecialId.objects.create(accountToRecover = user, email = user.email)
+                    specialKey.save()
+                    text = {
+                        "status": True,
+                        "status_code": 200,
+                        "message": "success",
+                        "data": {
+                            "max_password_change": 1,
+                            "recoveryKey": specialKey.id,
+                            "email": specialKey.email,
+                            "user":  user.username,
+                            "userId": user.pk,
+                        }
+                    }
+                    print(text)
+                    return Response(text)
         else:
             return Response({"status": False, 
-                             "status_code": 200, 
-                             "message": "Expired code"
+                             "status_code": 1, 
+                             "message": "Expired code",
+                             "remaining_attempt": 0,
                              })
 
 class GetUserData(APIView):
@@ -577,7 +576,7 @@ class get_friend(APIView):
             })
             
         err_401['message'] = "invalid cridential"
-        return JsonResponse(err_401)
+        return Response(err_401)
 
 class logout(APIView):
     def post(self, request:HttpRequest):
@@ -597,7 +596,7 @@ class logout(APIView):
             blacklistedtoken = BlacklistedToken.objects.create(token_id=token_id, blacklisted_at = timezone.now())
             blacklistedtoken.save()
             """
-            return JsonResponse({'status': True, 'message': 'user logged-out'})
+            return Response({'status': True, 'message': 'user logged-out'})
 class logoutAll(APIView):
     def post(self, request:HttpRequest):
         if request.user.is_authenticated:
@@ -613,7 +612,7 @@ class logoutAll(APIView):
                     blacklistedtoken = BlacklistedToken.objects.create(token_id=token.id, blacklisted_at = timezone.now())
                     blacklistedtoken.save()
                 
-                return JsonResponse({'status': True, 'message': 'all account logged-out'})
+                return Response({'status': True, 'message': 'all account logged-out'})
         
 class login(APIView):
     def post(self, request:HttpRequest):
@@ -674,14 +673,14 @@ class crateSignupCode(APIView):
         expiration = datetime.now()+timedelta(minutes=5)
         try:
             User.objects.get(email = email)
-            return JsonResponse({"status": False, "status_code": 200, "message": "email already exists"})
+            return Response({"status": False, "status_code": 200, "message": "email already exists"})
         except User.DoesNotExist:
             pass
 
         a = UserRegisterCode.objects.filter(expiration__gt = Now())
         try:
             a.get(email = email)
-            return JsonResponse({"status": False, "status_code": 200, "message": "already requested please wait 5 minutes"})
+            return Response({"status": False, "status_code": 200, "message": "already requested please wait 5 minutes"})
         except:
             pass
         data = {"id": id, "email": email, "username": username, "code": code, "expiration": str(expiration)}
@@ -689,11 +688,11 @@ class crateSignupCode(APIView):
         if serialiser.is_valid():
             if sendEmailFromUser(code=code, useremail=email):
                 serialiser.save()
-                return JsonResponse({"status": True, "status_code": 200, "message": "authentication created", 'data': {'regId': id, 'email': email, 'username': username}})
+                return Response({"status": True, "status_code": 200, "message": "authentication created", 'data': {'regId': id, 'email': email, 'username': username}})
             
 
 
-        return JsonResponse({"status": False, "status_code": 200, "message": "invalid cridentials"})
+        return Response({"status": False, "status_code": 200, "message": "invalid cridentials"})
 
 
 class signup(APIView):
