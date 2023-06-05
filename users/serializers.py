@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import FollowerCount
+from .models import FollowerCount, ChangePasswordHistory
 
 
 
@@ -19,3 +19,8 @@ class FollowersCountSerializer(serializers.ModelSerializer):
   class Meta:
     model = FollowerCount
     fields = ['follower', 'user']
+    
+class ChangePasswordHistorySerializer(serializers.ModelSerializer):
+  class Meta:
+    model = ChangePasswordHistory
+    fields = ['user', 'date', 'device', 'ip']

@@ -17,3 +17,9 @@ class OnlineUser(models.Model):
 
 	def __str__(self):
 		return self.user.username
+
+class ChangePasswordHistory(models.Model):
+    user = models.ForeignKey(User, related_name="user_to_change", on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+    device = models.TextField(max_length=1500)
+    ip = models.TextField(max_length=100)

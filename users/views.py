@@ -17,13 +17,14 @@ from django.contrib.auth.models import AbstractBaseUser
 from rest_framework_simplejwt.exceptions import TokenError
 from notifications.views import FollowNotificationView
 from django.db.models import Q
-from .models import OnlineUser
+from .models import OnlineUser, ChangePasswordHistory
+from .serializers import ChangePasswordHistorySerializer
 from smtplib import SMTPRecipientsRefused
 import random, uuid
 from django.utils import timezone
 from datetime import datetime
 from django.http import HttpRequest
-from .dbManager import sendRecoveryCodeEmailFromUser, sendEmailFromUser
+from .dbManager import sendRecoveryCodeEmailFromUser, sendEmailFromUser, get_client_ip
 import time
 from time_.get_time import getStringTime, getStringTimeForSwitchAccount
 
@@ -76,6 +77,59 @@ def isOnline(user=None, username = None) -> bool:
         return True
     else:
         return False
+
+class changePasswordView(APIView):
+    def post(self, request:HttpRequest):
+        try:
+            user:AbstractBaseUser = request.user
+            if user.is_authenticated:
+                oldPassword = request.data['oldPassword']
+                newPassword = request.data['newPassword']
+                retype = request.data['confirmNewPassword']
+                device = request.data['device']
+                ip = get_client_ip(request=request)
+                userToChangePassword = User.objects.get(pk = user.pk)
+                if str(oldPassword) == str(newPassword):
+                    return Response({
+                        "status": False,
+                        "status_code": 403,
+                        "message": "password are same."
+                    })
+                if userToChangePassword.check_password(oldPassword):
+                    if str(newPassword) == str(retype):
+                        data = {"ip": ip,
+                                "device": device,
+                                "user": userToChangePassword.pk}
+                        serializer = ChangePasswordHistorySerializer(data=data)
+                        if serializer.is_valid(raise_exception=True):
+                            serializer.save()
+                            userToChangePassword.set_password(newPassword)
+                            userToChangePassword.save()
+                            return Response({"status":True,
+                                        "status_code": 200,
+                                        "message": "success"})
+                        else:
+                            return Response({"status":False,
+                                        "status_code": 403,
+                                        "message": "invalid cridentials"})
+                    else:
+                        return Response({"status":False,
+                                "status_code": 403,
+                                "message": "password not match"})
+                else:
+                    return Response({"status":False,
+                                "status_code": 403,
+                                "message": "invalid password"})
+            else:
+                return Response({"status":False,
+                                "status_code": 401,
+                                "message": "invalid user"})
+        except Exception as e:
+            return Response({"status":False,
+                            "status_code": 401,
+                            "message":str(e),
+                            "id": None,
+                            "username": None})
 
 class BahaviorLoginEvent(APIView):
     def get(self, request:HttpRequest):
