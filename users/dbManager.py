@@ -21,11 +21,79 @@ from django.db.models import Q
 from .models import OnlineUser
 from smtplib import SMTPRecipientsRefused
 import random, uuid
+from .serializers import OnlineUserSerializer
 from django.utils import timezone
 from datetime import datetime
 from django.http import HttpRequest
 import time
+from .models import OnlineUser, FollowerCount
 from time_.get_time import getStringTime, getStringTimeForSwitchAccount
+from channels.db import database_sync_to_async
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+
+
+@database_sync_to_async
+def getOnlineUser(user:AbstractBaseUser) -> dict[OnlineUserSerializer]:
+    friends = FollowerCount.objects.filter(follower = user)
+    online_friends = OnlineUser.objects.none()
+    
+    if friends:
+        for i in friends:
+            online_friends |= OnlineUser.objects.filter(user = i.user)
+    if len(online_friends) != 0:
+        data = OnlineUserSerializer(online_friends, many = True).data
+        return data
+    else:
+        return None
+
+@database_sync_to_async
+def ImOnline(user: AbstractBaseUser) -> bool:
+    channel_layer = get_channel_layer()
+    try:
+        friends = FollowerCount.objects.filter(user = user)
+        profile = Profile.objects.get(user = user)
+        serialize_profile = ProfileSerializer(profile).data
+        text = {"avatar":serialize_profile['profileimg'],
+                "name": serialize_profile['name'],
+                "id": user.pk,
+                "username": user.username,
+                "type": "new_online_user"
+                }
+        if friends is not None:
+            for i in friends:
+                room = str(f"room_{i.follower.username}")
+                async_to_sync(channel_layer.group_send)(room, text)
+                
+        return True
+    
+    except:
+        return False
+@database_sync_to_async
+def ImOffline(user: AbstractBaseUser) -> bool:
+    channel_layer = get_channel_layer()
+    try:
+        friends = FollowerCount.objects.filter(user = user)
+        profile = Profile.objects.get(user = user)
+        serialize_profile = ProfileSerializer(profile).data
+        text = {"avatar":serialize_profile['profileimg'],
+                "name": serialize_profile['name'],
+                "id": user.pk,
+                "username": user.username,
+                "type": "new_offline_user"
+                }
+        if friends is not None:
+            for i in friends:
+                room = str(f"room_{i.follower.username}")
+                async_to_sync(channel_layer.group_send)(room, text)
+                
+        return True
+    
+    except:
+        return False
+            
+
 
 def sendRecoveryCodeEmailFromUser(code, useremail):
     email = EmailMessage('Recovery code from DM',

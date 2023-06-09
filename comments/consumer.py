@@ -213,7 +213,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
     
     async def new_reaction_change(self, event:dict):
-        print(event)
+        #print(event)
         await self.send(text_data=json.dumps(event))
 
     async def new_comment_deleted(self, event:dict):
