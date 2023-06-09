@@ -274,8 +274,6 @@ class Videos(models.Model):
 
 
 class Post(models.Model):
-    DoesNotExist = None
-    objects = None
 
     class privacy_choice(models.TextChoices):
         Public = 'P', _('Public')
@@ -337,8 +335,6 @@ class SharePost(models.Model):
 
 
 class LikePost(models.Model):
-    objects = None
-
     class ReactionType(models.TextChoices):
         HAPPY = 'H', 'Happy'
         LOVE = 'L', 'Love'

@@ -95,31 +95,87 @@ def getStringTimeForSwitchAccount(date:str) -> str:
         elif diff.days >= 30:
             months = diff.days // 30
             if months is 1:
-                return f'{months}m'
+                return f'{months} month ago'
             else:
                 return date.strftime('%b %d')
         elif diff.days >= 7:
             weeks = diff.days // 7
             if weeks is 1:
-                return f'{weeks}w'
+                return f'{weeks} week ago'
             else:
                 return date.strftime('%b %d')
         elif diff.days > 0:
             day = diff.days
-            return f'{day}d'
+            if day is 1:
+                return f'{day} yesterday'
+            else:
+                return f'{day} days ago'
         elif diff.seconds > 3600:
             hours = diff.seconds // 3600
-            return f'{hours}h'
+            if hours is 1:
+                return f'{hours} hour ago'
+            else:
+                return f'{hours} hours ago'
         elif diff.seconds > 60:
             minute = diff.seconds // 60
-            return f'{minute}m'
+            if minute is 1:
+                return f'{minute} minute ago'
+            else:
+                return f'{minute} minutes ago'
         elif diff.seconds < 60 and diff.seconds > 15:
-            return f'{diff.seconds}s'
+            return f'{diff.seconds} seconds ago'
         else:
             return 'just now'
     except:
         return date
-
+def getStringTimeComplete(date:str) -> str:
+    try:
+        date:datetime = datetime.fromisoformat(date.replace('Z', '+00:00'))
+    except ValueError:
+        return date
+    now:datetime = datetime.now(timezone.utc)
+    date:datetime = date.astimezone(now.tzinfo)
+    diff:timedelta = now - date
+    if diff.days >= 365:
+        years = diff.days // 365
+        if years > 1:
+            return f'{years} years ago'
+        else:
+            return f'{years} year ago'
+    elif diff.days >= 30:
+        months = diff.days // 30
+        if months is 1:
+            return f'{months} month ago'
+        else:
+            return date.strftime('%b %d')
+    elif diff.days >= 7:
+        weeks = diff.days // 7
+        if weeks is 1:
+            return f'{weeks} week ago'
+        else:
+            return date.strftime('%b %d')
+    elif diff.days > 0:
+        day = diff.days
+        if day is 1:
+            return f'{day} yesterday'
+        else:
+            return f'{day} days ago'
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        if hours is 1:
+            return f'{hours} hour ago'
+        else:
+            return f'{hours} hours ago'
+    elif diff.seconds > 60:
+        minute = diff.seconds // 60
+        if minute is 1:
+            return f'{minute} minute ago'
+        else:
+            return f'{minute} minutes ago'
+    elif diff.seconds < 60 and diff.seconds > 15:
+        return f'{diff.seconds} seconds ago'
+    else:
+        return 'just now'
 def getStringTime(date:str) -> str:
     try:
         date:datetime = datetime.fromisoformat(date.replace('Z', '+00:00'))
@@ -137,7 +193,7 @@ def getStringTime(date:str) -> str:
     elif diff.days >= 30:
         months = diff.days // 30
         if months is 1:
-            return f'{months}m'
+            return f'{months}month'
         else:
             return date.strftime('%b %d')
     elif diff.days >= 7:

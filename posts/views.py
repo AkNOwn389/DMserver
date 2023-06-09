@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
 from notifications.models import MyNotification
-from .serializers import ImagesSerializer, PostUploader, LikesPostSerializer
+from .serializers import ImagesSerializer, PostUploader, LikesPostSerializer, VideoSerializer
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Image as PostImage, Videos as PostVideos
 from comments.models import LikeComment as Like_Comment, Comment
@@ -80,7 +80,43 @@ class ChangePrivacy(APIView):
                          'message': 'invalid user'
                          })
 
-
+class DeletePostImage(APIView):
+    def post(self, request):
+        try:
+            user:AbstractBaseUser = request.user
+            if user.is_authenticated:
+                image_id = request.data['imageId']
+                post:Post = Post.objects.get(images_url__id = image_id, creator = user)
+                if len(post.images_url.all()) > 1:
+                    post.images_url.get(id = image_id).delete()
+                    post.save()
+                    return Response({
+                        "status": True,
+                        "status_code": 200,
+                        "message": "success"
+                    })
+                else:
+                    post.delete()
+                    return Response({
+                        "status": True,
+                        "status_code": 200,
+                        "message": "success"
+                    })
+        except Post.DoesNotExist:
+            return Response({'status': False,
+                            'status_code': 404,
+                            'message': 'post image doest not exists'})
+        except KeyError:
+            return Response({'status': False,
+                            'status_code': 403,
+                            'message': 'post id is required'})
+        except:
+            return Response({
+                "status": False,
+                "status_code": 403,
+                "message": "system failure"
+            })
+            
 class DeletePost(APIView):
     def get(self, request:HttpRequest, postId:str):
         if request.user.is_authenticated:
@@ -194,17 +230,6 @@ class upload(APIView):
             user = request.user
             data = request.data
             user_profile = Profile.objects.get(user=user)
-            """
-            if images != None:
-                for i in images:
-                    y = {"image": i}
-                    x = ImagesSerializer(data = y)
-                    if x.is_valid(raise_exception=True):
-                        pass
-                    else:
-                        isError = True
-                        """
-
             if not isError:
                 try:
                     postToUpload = Post.objects.create(creator=user,
@@ -526,7 +551,38 @@ class PostView(APIView):
     err_404['message'] = "method not allowed"
     Response(err_404)
 
-
+class MyVideos(APIView):
+    def get(self, request, page):
+        try:
+            user:AbstractBaseUser = request.user
+            if user.is_authenticated:
+                limit = page * 16
+                video_lists = []
+                my_posts = Post.objects.filter(creator = user, media_type = 5).order_by("created_at")
+                
+                for post in my_posts:
+                    video_lists.extend(post.videos_url.all())
+                serializer = VideoSerializer(video_lists[int(limit) - 16:int(limit)], many=True)
+                for i in serializer.data:
+                    if LikePost.objects.filter(post_id=i['id'], username=user).exists():
+                        i['is_like'] = True
+                        i['reactionType'] = \
+                            LikesPostSerializer(LikePost.objects.get(post_id=i['id'], username=request.user)).data[
+                                'reactionType']
+                    else:
+                        i['is_like'] = False
+                hasMorePage:bool = len(serializer.data) == 16
+                return Response({'status': True,
+                                'status_code': 200,
+                                'message': 'success',
+                                'lenght': len(serializer.data),
+                                'hasMorePage': hasMorePage,
+                                'data': serializer.data
+                                })
+        except:
+            return Response({"status": True,
+                             "status_code": 403,
+                             "message": "system failure to manage error"})
 class MyGallery(APIView):
     def get(self, request, page):
         user = request.user
@@ -561,13 +617,6 @@ class MyGallery(APIView):
                          "status_code": 401,
                          "data": []
                          })
-
-
-
-
-
-
-
 
 class DeleteCommentView(APIView):
 
