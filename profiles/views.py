@@ -322,6 +322,7 @@ class GetRecentSearch(APIView):
 class MainSearch(APIView):
     def finder(self, user):
         search = str(user).replace("%20", " ").split(" ")
+        print(search)
         users = []
         for posible in search:
             if posible == "":

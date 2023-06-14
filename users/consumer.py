@@ -48,7 +48,8 @@ class OnlineUserCosummer(AsyncWebsocketConsumer):
                 data = await getOnlineUser(user = self.user)
                 text = {
                     "data": data,
-                    "message": "connection created"
+                    "message": "connection created",
+                    "type": "connectionCreated",
                     }
                 await self.send(text_data=json.dumps(text))
                 self.room = str(f"room_{self.user.username}")

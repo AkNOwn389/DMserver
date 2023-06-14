@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'comments',
     'profiles',
     'imagekit',
+    'myday',
     'users',
     'feeds',
     'chats',

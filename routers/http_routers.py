@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import (
 from Authentication.views import CustomTokenRefreshView
 
 urlpatterns = [
+    path('myday/', include('myday.urls')),
     path('post/', include('posts.urls')),
     path('comments/', include('comments.urls')),
     path('profile/', include('profiles.urls')),
