@@ -42,6 +42,10 @@ class MessageTypes(enum.IntEnum):
     UpdatePage = 12
     DeleteMessage = 13
     ReactMessage = 14
+    
+class ChatPageViewTypes(enum.StrEnum):
+    refresh = "Refresh"
+    nextPage = "nextPage"
 
 
 class ChatPageTypes(enum.IntEnum):

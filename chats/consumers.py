@@ -12,11 +12,11 @@ from .managers import MessageManager
 from asgiref.sync import sync_to_async
 from django.db.models import Q
 from .db_operations import get_unread_count, get_file_by_id, save_text_message, mark_message_as_read, \
-    get_serialize_profile, get_user_profile, get_user_by_pk, serializeMessage
+    get_serialize_profile, get_user_profile, get_user_by_pk, serializeMessage, getMessageData
 from .errors import ErrorTypes
 from .models import PrivateMessage as UserMessage
 from .message_types import MessageTypeFileMessage, MessageTypeMessageRead, MessageTypes, MessageTypeTextMessage, \
-    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes
+    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes, ChatPageViewTypes
 from chats.models import RoomManager
 from time_.get_time import getStringTime
 from .errors import ErrorTypes, ErrorDescription
@@ -187,6 +187,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def is_typing(self, event: dict):
         print(event)
         await self.send(text_data=OutgoingEventIsTyping(**event).to_json())
+
+
+
+
+
+    
+    
+    
 
 
 class MessagePageView(AsyncWebsocketConsumer):

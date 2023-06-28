@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class NotificationChannel(models.Model):
-    objects = None
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_notification_consumer")
     channel_room = models.TextField(default=uuid.uuid4())
 
@@ -16,7 +15,6 @@ class NotificationChannel(models.Model):
 
 
 class MyNotification(models.Model):
-    objects = None
     userToNotify = models.ForeignKey(User, blank=False, related_name="user_to_notify", on_delete=models.CASCADE, default=None)
     subjectUser = models.ManyToManyField(User, blank=False, related_name='subjectUser')
     subjectPostsId = models.TextField(blank=True, default=None)

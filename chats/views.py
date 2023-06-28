@@ -101,6 +101,15 @@ class sendmessage(APIView):
     error404 = {'status': False, 'status_code': 404,'message': 'User not exists'}
     error400 = {'status': False, 'status_code': 400,'message': 'Invalid user'}
     success = {'status': True, 'status_code': 200, 'message': 'send success'}
+    
+    def notify_new_message(self, event: dict, room: str) -> None:
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(room, event)
+            return None
+        except Exception as e:
+            print(e)
+    
     def RETURN(self, id, request):
         msg = MessagesSerialiser(message.objects.get(id = id))
         username = msg.data['receiver'] if msg.data['sender'] == request.user.username else msg.data['sender']
@@ -112,7 +121,7 @@ class sendmessage(APIView):
         self.success['data']['user_avatar'] = ProfileSerializer(Profile.objects.get(user = User.objects.get(username = msg.data['sender']))).data['profileimg']
         self.success['data']['type'] = 2 if username == request.user.username else 1
         self.success['data']['me'] = True
-
+        self.notify_new_message(event=success, room=f"room_{username}_chat_page")
         return Response(self.success)
      
     """

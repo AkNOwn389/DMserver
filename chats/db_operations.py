@@ -9,6 +9,7 @@ from .serializers import MessagesSerialiser
 from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from .models import RoomManager
+from .models import PrivateMessage as UserMessage
 
 @database_sync_to_async
 def get_user_by_pk(pk: str) -> Awaitable[Optional[AbstractBaseUser]]:
@@ -55,3 +56,30 @@ def serializeMessage(message:MessageModel) -> Awaitable[dict]:
 @database_sync_to_async
 def save_text_message(message: str, from_: AbstractBaseUser, to: AbstractBaseUser) -> Awaitable[MessageModel]:
     return MessageModel.objects.create(message_body=message, sender=from_, receiver=to)
+
+@database_sync_to_async
+def getMainPageView(user:AbstractBaseUser) -> list[UserMessage]:
+    messages = UserMessage.objects.filter(Q(sender = user) | Q(receiver = user)).order_by("-date_time")
+    msg_lists = []
+    msg = []
+    for x in messages:
+        y = x.sender if x.receiver == user else x.receiver
+        if y not in msg:
+            msg.append(y)
+            msg_lists.append(x)
+    return msg_lists
+
+@database_sync_to_async
+def getMessageData(user: AbstractBaseUser, event: dict):
+    event['username'] = event['receiver'] if event['sender'] == user.username else event['sender']
+    event['sender_full_name'] = Profile.objects.get(user=User.objects.get(username=event['sender'])).name
+    event['receiver_full_name'] = Profile.objects.get(user=User.objects.get(username=event['receiver'])).name
+    event['user_full_name'] = Profile.objects.get(user=User.objects.get(username=event['username'])).name
+    event['user_avatar'] = \
+    ProfileSerializer(Profile.objects.get(user=User.objects.get(username=event['username']))).data['profileimg']
+    event['message_lenght'] = len(
+        UserMessage.objects.filter(sender=User.objects.get(username=event['username']), receiver=user))
+    event['type'] = 1
+    if event['sender'] == user.username:
+        event['message_body'] = f"You: {event['message_body']}"
+    return event
