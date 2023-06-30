@@ -8,7 +8,7 @@ from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from .serializers import MessagesSerialiser
 from .models import PrivateRoom, RoomManager
-from .managers import MessageManager
+from .managers import get_chat_page_channel_name, get_chat_user_room_name
 from asgiref.sync import sync_to_async
 from django.db.models import Q
 from .db_operations import get_unread_count, get_file_by_id, save_text_message, mark_message_as_read, \
@@ -29,6 +29,36 @@ logger = logging.getLogger('chats.consumers')
 TEXT_MAX_LENGTH = getattr(settings, 'TEXT_MAX_LENGTH', 65535)
 UNAUTH_REJECT_CODE: int = 4001
 ERROR_404 = 404
+
+
+class UserChattingConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        return await super().connect()
+    async def receive(self, text_data=None, bytes_data=None):
+        return await super().receive(text_data, bytes_data)
+    async def disconnect(self, code):
+        return await super().disconnect(code)
+    #handle user request
+    async def handle_request(self, json_data: dict, data_type: str):
+        pass
+    #functions
+    async def new_message(self, event: dict):
+        pass
+    async def isTyping(self, event: dict):
+        pass
+    async def stopTyping(self, event: dict):
+        pass
+    async def new_user_online(self, event: dict):
+        pass
+    async def new_user_offline(self, event:dict):
+        pass
+    async def new_reactions(self, event: dict):
+        pass
+    async def new_image_message(self, event: dict):
+        pass
+    async def new_video_message(self, event: dict):
+        pass
+
 
 
 class MessagePageViewV2(AsyncWebsocketConsumer):
@@ -70,9 +100,9 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
         self.user: AbstractBaseUser = self.scope['user']
         if self.user.is_authenticated:
             await self.accept()
-            self.room = f"room_{self.user.username}_chat_page"
+            self.room = get_chat_page_channel_name(self.user.username)
             self.channel_layer.group_add(self.room, self.channel_name)
-            msg_lists = await sync_to_async(MessageManager().getMainPageView)(user=self.user)
+            msg_lists = await getMainPageView(user=self.user)
             c = await sync_to_async(self.serialize)(msg_lists, 1)
             for i in c:
                 data = await getMessageData(self.user, i)
@@ -113,6 +143,11 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
             }
             self.send(json.dumps(text))
     async def disconnect(self, code):
+        try:
+            print(f"{self.user} is disconnected with close code of {code}")
+            await self.channel_layer.group_discard(self.room, self.channel_name)
+        except Exception as e:
+            print(f"Exception call in disconnect: {e}")
         return await super().disconnect(code)
 
     async def new_message(self, event: dict):
