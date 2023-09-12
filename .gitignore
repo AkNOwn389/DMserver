@@ -13,6 +13,7 @@ develop-eggs/
 dist/
 downloads/
 eggs/
+dm_server/
 .eggs/
 lib/
 lib64/
