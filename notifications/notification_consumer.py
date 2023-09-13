@@ -9,9 +9,6 @@ from .dbManager import getOrCreateNotificationChannel, chatBadge, notifBadge
 import json
 
 
-
-
-
 class NotificationBadgeSocket(AsyncWebsocketConsumer):
 
     # Default method
@@ -21,7 +18,7 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
         self.user = None
 
     async def connect(self):
-        self.user:AbstractBaseUser = self.scope['user']
+        self.user: AbstractBaseUser = self.scope['user']
         if self.user.is_authenticated:
             await self.accept()
             self.room = await database_sync_to_async(getOrCreateNotificationChannel)(user=self.user)
@@ -56,6 +53,6 @@ class NotificationBadgeSocket(AsyncWebsocketConsumer):
 
     async def new_chat(self, event: dict):
         await self.send(text_data=json.dumps(event))
-        
-    async def new_notification_badge(self, event:dict):
+
+    async def new_notification_badge(self, event: dict):
         await self.send(text_data=json.dumps(event))

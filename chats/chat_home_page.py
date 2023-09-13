@@ -16,14 +16,13 @@ from .db_operations import get_unread_count, get_file_by_id, save_text_message, 
 from .errors import ErrorTypes
 from .models import PrivateMessage as UserMessage
 from .message_types import MessageTypeFileMessage, MessageTypeMessageRead, MessageTypes, MessageTypeTextMessage, \
-    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes, ChatPageViewTypes
+    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes, \
+    ChatPageViewTypes
 from chats.models import RoomManager
 from time_.get_time import getStringTime
 from .errors import ErrorTypes, ErrorDescription
 from django.conf import settings
 import logging
-
-
 
 logger = logging.getLogger('chats.consumers')
 TEXT_MAX_LENGTH = getattr(settings, 'TEXT_MAX_LENGTH', 65535)
@@ -34,31 +33,41 @@ ERROR_404 = 404
 class UserChattingConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         return await super().connect()
+
     async def receive(self, text_data=None, bytes_data=None):
         return await super().receive(text_data, bytes_data)
+
     async def disconnect(self, code):
         return await super().disconnect(code)
-    #handle user request
+
+    # handle user request
     async def handle_request(self, json_data: dict, data_type: str):
         pass
-    #functions
+
+    # functions
     async def new_message(self, event: dict):
         pass
+
     async def isTyping(self, event: dict):
         pass
+
     async def stopTyping(self, event: dict):
         pass
+
     async def new_user_online(self, event: dict):
         pass
-    async def new_user_offline(self, event:dict):
-        pass
-    async def new_reactions(self, event: dict):
-        pass
-    async def new_image_message(self, event: dict):
-        pass
-    async def new_video_message(self, event: dict):
+
+    async def new_user_offline(self, event: dict):
         pass
 
+    async def new_reactions(self, event: dict):
+        pass
+
+    async def new_image_message(self, event: dict):
+        pass
+
+    async def new_video_message(self, event: dict):
+        pass
 
 
 class MessagePageViewV2(AsyncWebsocketConsumer):
@@ -69,7 +78,7 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
             for i in c:
                 data = await getMessageData(self.user, i)
                 i.update(data)
-                
+
             text: dict = {
                 'status': True,
                 'status_code': 200,
@@ -80,7 +89,7 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
             await self.send(json.dumps(text))
             return None
         elif message_type == ChatPageViewTypes.nextPage:
-            page:int = text_data_json['page']
+            page: int = text_data_json['page']
             msg_lists = await getMainPageView(user=self.user)
             c = await sync_to_async(self.serialize)(msg_lists, page)
             for i in c:
@@ -95,7 +104,7 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
             }
             await self.send(json.dumps(text))
             return None
-            
+
     async def connect(self):
         self.user: AbstractBaseUser = self.scope['user']
         if self.user.is_authenticated:
@@ -107,7 +116,7 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
             for i in c:
                 data = await getMessageData(self.user, i)
                 i.update(data)
-                
+
             text: dict = {
                 'status': True,
                 'status_code': 200,
@@ -116,24 +125,24 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
                 'message': 'connected'
             }
             await self.send(json.dumps(text))
-            
-            
+
+
         else:
             print(f"Rejecting unauthenticated user with code {UNAUTH_REJECT_CODE}")
             await self.close(code=UNAUTH_REJECT_CODE)
-            
+
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
         if not "type" in text_data_json:
-            self.send(json.dumps({"status": False,
-                                  "status_code": 403,
-                                "message": "invalid data type"}))
+            await self.send(json.dumps({"status": False,
+                                        "status_code": 403,
+                                        "message": "invalid data type"}))
         message_type = text_data_json['type']
-        
+
         if not isinstance(message_type, str):
-            self.send(json.dumps({"status": False,
-                                  "status_code": 403,
-                                "message": "invalid data type"}))
+            await self.send(json.dumps({"status": False,
+                                        "status_code": 403,
+                                        "message": "invalid data type"}))
         error = await self.handle_receive__data(text_data_json=text_data_json, message_type=message_type)
         if error is not None:
             text = {
@@ -141,7 +150,8 @@ class MessagePageViewV2(AsyncWebsocketConsumer):
                 "status_code": 403,
                 "message": str(error)
             }
-            self.send(json.dumps(text))
+            await self.send(json.dumps(text))
+
     async def disconnect(self, code):
         try:
             print(f"{self.user} is disconnected with close code of {code}")

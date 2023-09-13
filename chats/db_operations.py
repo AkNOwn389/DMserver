@@ -10,6 +10,7 @@ from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from .models import RoomManager
 from .models import PrivateMessage as UserMessage
+from django.db.models import Q
 
 @database_sync_to_async
 def get_user_by_pk(pk: str) -> Awaitable[Optional[AbstractBaseUser]]:

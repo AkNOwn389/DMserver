@@ -8,7 +8,8 @@ from profiles.models import Profile
 from profiles.serializers import ProfileSerializer
 from .serializers import MessagesSerialiser
 from .models import PrivateRoom, RoomManager
-from .managers import MessageManager
+# from .managers import MessageManager
+from .db_operations import getMainPageView
 from asgiref.sync import sync_to_async
 from django.db.models import Q
 from .db_operations import get_unread_count, get_file_by_id, save_text_message, mark_message_as_read, \
@@ -16,7 +17,8 @@ from .db_operations import get_unread_count, get_file_by_id, save_text_message, 
 from .errors import ErrorTypes
 from .models import PrivateMessage as UserMessage
 from .message_types import MessageTypeFileMessage, MessageTypeMessageRead, MessageTypes, MessageTypeTextMessage, \
-    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes, ChatPageViewTypes
+    Optional, OutgoingEventIsTyping, OutgoingEventMessageRead, OutgoingEventStoppedTyping, ChatPageTypes, \
+    ChatPageViewTypes
 from chats.models import RoomManager
 from time_.get_time import getStringTime
 from .errors import ErrorTypes, ErrorDescription
@@ -189,14 +191,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=OutgoingEventIsTyping(**event).to_json())
 
 
-
-
-
-    
-    
-    
-
-
 class MessagePageView(AsyncWebsocketConsumer):
     async def connect(self):
         self.user: AbstractBaseUser = self.scope['user']
@@ -220,7 +214,7 @@ class MessagePageView(AsyncWebsocketConsumer):
 
     async def __handle_receive(self, type: ChatPageTypes, text_data: dict):
         if type == ChatPageTypes.SyncPage:
-            msg_lists = await sync_to_async(MessageManager().getMainPageView)(user=self.user)
+            msg_lists = await getMainPageView(user=self.user)
             c = await sync_to_async(self.serialize)(msg_lists, 1)
             for i in c:
                 data = await sync_to_async(self.getMessageData)(i)
@@ -240,7 +234,7 @@ class MessagePageView(AsyncWebsocketConsumer):
         event['receiver_full_name'] = Profile.objects.get(user=User.objects.get(username=event['receiver'])).name
         event['user_full_name'] = Profile.objects.get(user=User.objects.get(username=event['username'])).name
         event['user_avatar'] = \
-        ProfileSerializer(Profile.objects.get(user=User.objects.get(username=event['username']))).data['profileimg']
+            ProfileSerializer(Profile.objects.get(user=User.objects.get(username=event['username']))).data['profileimg']
         event['message_lenght'] = len(
             UserMessage.objects.filter(sender=User.objects.get(username=event['username']), receiver=self.user))
         event['type'] = 1
