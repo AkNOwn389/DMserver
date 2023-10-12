@@ -129,9 +129,9 @@ if DEVELOPMENT_MODE  is True:
     DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'directmessagev2',
-        'USER': 'root',
-        'PASSWORD': '123456',
+        'NAME': 'directmessage',
+        'USER': 'aknown',
+        'PASSWORD': '8]ymiA2anzqrokF2',
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {

@@ -16,7 +16,7 @@ from .serializers import ImagesSerializer, PostUploader, LikesPostSerializer, Vi
 from notifications.views import LikeNotificationView, CommentNotificationView
 from .models import Image as PostImage, Videos as PostVideos
 from comments.models import LikeComment as Like_Comment, Comment
-from comments.comment_types import CommentTypes, CommentStrType
+from comments.comment_types import CommentTypes
 from comments.serializers import PostCommentSerializer
 from django.db.models import Q, F
 from news.models import News

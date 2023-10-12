@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from .db_articles import createNewsAticles
 from apscheduler.schedulers.background import BackgroundScheduler
 from bs4 import BeautifulSoup as soup
-from newsapi import NewsApiClient
+from newsapi import newsapi_client as NewsApiClient
 from django.conf import settings
 from news.models import News
 import json
