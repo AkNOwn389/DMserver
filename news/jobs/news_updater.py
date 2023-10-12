@@ -14,6 +14,7 @@ session = requests.Session()
 
 
 def start():
+    getNews()
     scheduler = BackgroundScheduler()
     scheduler.add_job(getNews, 'interval', seconds = 28000)
     scheduler.start()

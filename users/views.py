@@ -27,7 +27,7 @@ from django.http import HttpRequest
 from .dbManager import sendRecoveryCodeEmailFromUser, sendEmailFromUser, get_client_ip
 import time
 from time_.get_time import getStringTime, getStringTimeForSwitchAccount, getStringTimeComplete
-
+from icecream import ic
 
 success = {"status": True, "status_code": 200}
 err_400 = {"status": False, "status_code": 400}
@@ -798,50 +798,57 @@ class signup(APIView):
 
 
     def post(self, request:HttpRequest):
-        code = request.data['code']
-        regId = request.data['cridential']
-        username = request.data['username']
-        email = request.data['email']
-        name = request.data['name'].split()
-        password = request.data['password']
-        password2 = request.data['password2']
-        print(code, regId, username, email, name, password, password2)
-        if password != password2:
-            return Response({
-                'status': False,
-                'message': 'Password not matches'
-            })
- 
-        if User.objects.filter(email=email).exists():
-            return Response({
-                'status':False,
-                'message': 'Email already exists'})
-        
-        if User.objects.filter(username=username).exists():
-            return Response({
-                'status':False,
-                'message': 'Username already exists'})
-        
-        
-        if UserRegisterCode.objects.filter(id = regId, expiration__gt = Now()).exists():
-            registerCodeTable = UserRegisterCode.objects.get(id = str(regId))
+        try:
+            code = request.data['code']
+            regId = request.data['cridential']
+            username = request.data['username']
+            email = request.data['email']
+            name = request.data['name'].split()
+            password = request.data['password']
+            password2 = request.data['password2']
+            print(code, regId, username, email, name, password, password2)
+            if password != password2:
+                return Response({
+                    'status': False,
+                    'message': 'Password not matches'
+                })
+    
+            if User.objects.filter(email=email).exists():
+                return Response({
+                    'status':False,
+                    'message': 'Email already exists'})
             
-            if str(registerCodeTable.code).strip() != str(code).strip():
-                print(registerCodeTable.code, code)
-                return Response({"status": False, 
-                                 "status_code": 200, 
-                                 "message": "invalid code"
-                                 })
-            elif str(registerCodeTable.email).strip() != str(email).strip():
-                return Response({"status": False, 
-                                 "status_code": 200, 
-                                 "message": "invalid registered email"
-                                 })
+            if User.objects.filter(username=username).exists():
+                return Response({
+                    'status':False,
+                    'message': 'Username already exists'})
+            
+            
+            if UserRegisterCode.objects.filter(id = regId, expiration__gt = Now()).exists():
+                registerCodeTable = UserRegisterCode.objects.get(id = str(regId))
+                
+                if str(registerCodeTable.code).strip() != str(code).strip():
+                    print(registerCodeTable.code, code)
+                    return Response({"status": False, 
+                                    "status_code": 200, 
+                                    "message": "invalid code"
+                                    })
+                elif str(registerCodeTable.email).strip() != str(email).strip():
+                    return Response({"status": False, 
+                                    "status_code": 200, 
+                                    "message": "invalid registered email"
+                                    })
+                else:
+                    return self.createAccount(name = name, username=username, email=email, password=password)
             else:
-                return self.createAccount(name = name, username=username, email=email, password=password)
-        else:
+                return Response({"status": False, 
+                                "status_code": 200, 
+                                "message": "Expired code"
+                                })
+        except Exception as e:
+            ic(e)
             return Response({"status": False, 
-                             "status_code": 200, 
-                             "message": "Expired code"
-                             })
+                            "status_code": 200, 
+                            "message": "System error"
+                            })
    
